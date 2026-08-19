@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
+import VerifyEmail from "./pages/VerifyEmail";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Home from "./pages/Home";
@@ -8,7 +8,6 @@ import ForgotPassword from "./pages/ForgotPassword";
 
 import ProtectedRoutes from "./components/ProtectedRoutes";
 import PublicRoutes from "./components/PublicRoutes";
-
 function App() {
   return (
     <BrowserRouter>
@@ -17,6 +16,7 @@ function App() {
 
         {/* =========================
             PUBLIC ROUTES
+            Logged-in users CANNOT access
         ========================= */}
 
         <Route element={<PublicRoutes />}>
@@ -41,7 +41,7 @@ function App() {
 
         {/* =========================
             RESET PASSWORD
-            Accessible whether logged in or not
+            Accessible to everyone
         ========================= */}
 
         <Route
@@ -63,6 +63,13 @@ function App() {
 
         </Route>
 
+          {/* =========================
+            verify email ROUTES
+        ========================= */}
+<Route
+  path="/verify-email/:token"
+  element={<VerifyEmail />}
+/>
       </Routes>
 
     </BrowserRouter>

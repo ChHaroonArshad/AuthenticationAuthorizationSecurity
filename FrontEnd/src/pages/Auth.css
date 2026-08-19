@@ -1,18 +1,34 @@
+/* =========================================================
+   GLOBAL
+========================================================= */
+
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
   background: #f5f5f3;
   color: #171717;
 }
 
+
+/* =========================================================
+   AUTH PAGE
+========================================================= */
+
 .auth-page {
   min-height: 100vh;
   padding: 24px;
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -26,25 +42,19 @@ body {
   display: grid;
   grid-template-columns: 45% 55%;
 
-  background: white;
+  background: #ffffff;
 
   border-radius: 24px;
-
   overflow: hidden;
 
   box-shadow:
     0 25px 70px rgba(0, 0, 0, 0.08);
 }
-.field-error {
-  margin-top: 7px;
-  font-size: 12px;
-  color: #c62828;
-  line-height: 1.4;
-}
 
-/* =========================
-   LEFT VISUAL
-========================= */
+
+/* =========================================================
+   LEFT SIDE / BRAND
+========================================================= */
 
 .auth-visual {
   position: relative;
@@ -58,7 +68,6 @@ body {
     );
 
   color: white;
-
   overflow: hidden;
 }
 
@@ -72,7 +81,7 @@ body {
 
   border-radius: 50%;
 
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 
   top: 20%;
   left: -120px;
@@ -88,7 +97,7 @@ body {
 
   border-radius: 50%;
 
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 
   bottom: -200px;
   right: -180px;
@@ -106,17 +115,38 @@ body {
   z-index: 2;
 }
 
+
+/* =========================================================
+   LOGO
+========================================================= */
+
 .logo {
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.5px;
 }
 
-.logo span,
+.logo span {
+  font-size: 13px;
+  margin-right: 8px;
+}
+
+.mobile-logo {
+  display: none;
+
+  font-size: 21px;
+  font-weight: 700;
+}
+
 .mobile-logo span {
   font-size: 13px;
   margin-right: 8px;
 }
+
+
+/* =========================================================
+   LEFT CONTENT
+========================================================= */
 
 .visual-text {
   margin-top: auto;
@@ -125,49 +155,42 @@ body {
   max-width: 430px;
 }
 
-.eyebrow,
-.form-eyebrow {
+.eyebrow {
   font-size: 11px;
-
   font-weight: 700;
 
   letter-spacing: 2px;
 
   margin-bottom: 18px;
 
-  opacity: 0.6;
+  color: #bdbdbd;
 }
 
 .visual-text h1 {
+  margin: 0 0 30px;
+
   font-size: clamp(48px, 5vw, 72px);
 
   line-height: 0.95;
-
   letter-spacing: -4px;
-
-  margin: 0 0 30px;
 }
 
-.visual-text > p:last-child {
-  font-size: 16px;
+.visual-text p:last-child {
+  max-width: 370px;
 
+  font-size: 16px;
   line-height: 1.7;
 
   color: #bcbcbc;
-
-  max-width: 370px;
 }
 
 .visual-footer {
-  font-size: 13px;
-
-  color: #9d9d9d;
-
   display: flex;
-
+  align-items: center;
   gap: 10px;
 
-  align-items: center;
+  font-size: 13px;
+  color: #9d9d9d;
 }
 
 .visual-footer span {
@@ -175,15 +198,13 @@ body {
 }
 
 
-/* =========================
-   FORM
-========================= */
+/* =========================================================
+   FORM SECTION
+========================================================= */
 
 .auth-form-section {
   display: flex;
-
   align-items: center;
-
   justify-content: center;
 
   padding: 60px;
@@ -191,44 +212,51 @@ body {
 
 .auth-form-wrapper {
   width: 100%;
-
   max-width: 420px;
 }
 
-.mobile-logo {
-  display: none;
-}
+
+/* =========================================================
+   FORM HEADER
+========================================================= */
 
 .form-header {
   margin-bottom: 38px;
 }
 
 .form-eyebrow {
-  color: #777;
+  margin: 0 0 12px;
 
-  margin-bottom: 12px;
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing: 2px;
+
+  color: #777;
 }
 
 .form-header h2 {
+  margin: 0 0 10px;
+
   font-size: 38px;
+  line-height: 1.1;
 
   letter-spacing: -1.5px;
-
-  margin: 0 0 10px;
 }
 
 .form-header p:last-child {
-  color: #777;
-
   margin: 0;
 
   font-size: 15px;
+  line-height: 1.6;
+
+  color: #777;
 }
 
 
-/* =========================
-   INPUTS
-========================= */
+/* =========================================================
+   FORM
+========================================================= */
 
 .input-group {
   margin-bottom: 22px;
@@ -237,54 +265,57 @@ body {
 .input-group label {
   display: block;
 
-  font-size: 13px;
-
-  font-weight: 600;
-
   margin-bottom: 8px;
+
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .label-row {
   display: flex;
-
-  justify-content: space-between;
-
   align-items: center;
+  justify-content: space-between;
 }
 
 .label-row span {
   font-size: 11px;
-
   color: #999;
 }
 
+
+/* =========================================================
+   INPUTS
+========================================================= */
+
 .input-group input {
   width: 100%;
-
   height: 52px;
-
-  border: 1px solid #dedede;
-
-  border-radius: 10px;
 
   padding: 0 15px;
 
-  font-size: 14px;
+  border: 1px solid #dedede;
+  border-radius: 10px;
 
   outline: none;
 
-  transition: 0.2s;
-
   background: #fafafa;
+
+  font-size: 14px;
+
+  transition: 0.2s ease;
+}
+
+.input-group input:hover {
+  border-color: #c8c8c8;
 }
 
 .input-group input:focus {
   border-color: #171717;
 
-  background: white;
+  background: #ffffff;
 
   box-shadow:
-    0 0 0 3px rgba(0,0,0,0.05);
+    0 0 0 3px rgba(0, 0, 0, 0.05);
 }
 
 .input-group input::placeholder {
@@ -292,90 +323,163 @@ body {
 }
 
 
-/* =========================
+/* =========================================================
+   FORGOT PASSWORD
+========================================================= */
+
+.forgot {
+  padding: 0;
+
+  border: none;
+  background: transparent;
+
+  color: #555;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.forgot:hover {
+  color: #000;
+  text-decoration: underline;
+}
+
+
+/* =========================================================
    BUTTON
-========================= */
+========================================================= */
 
 .auth-button {
   width: 100%;
-
   height: 54px;
 
   border: none;
-
   border-radius: 10px;
 
   background: #171717;
-
   color: white;
 
   font-size: 14px;
-
   font-weight: 600;
 
   cursor: pointer;
 
   display: flex;
-
   align-items: center;
-
   justify-content: center;
 
   gap: 12px;
 
-  transition: 0.2s;
+  transition: 0.2s ease;
 }
 
-.auth-button:hover {
+.auth-button:hover:not(:disabled) {
   background: #303030;
 
   transform: translateY(-1px);
+
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.auth-button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .auth-button:disabled {
   opacity: 0.6;
 
   cursor: not-allowed;
-
-  transform: none;
 }
 
 .auth-button span {
   font-size: 20px;
-
   line-height: 0;
 }
 
 
-/* =========================
-   ERROR
-========================= */
+/* =========================================================
+   ERRORS
+========================================================= */
 
 .auth-error {
-  background: #fff1f1;
-
-  border: 1px solid #ffd2d2;
-
-  color: #c62828;
+  width: 100%;
 
   padding: 12px 14px;
 
+  margin-bottom: 20px;
+
+  border: 1px solid #ffd2d2;
   border-radius: 9px;
 
-  font-size: 13px;
+  background: #fff1f1;
 
-  margin-bottom: 20px;
+  color: #c62828;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.field-error {
+  margin-top: 7px;
+
+  font-size: 12px;
+  line-height: 1.4;
+
+  color: #c62828;
 }
 
 
-/* =========================
-   FOOTER
-========================= */
+/* =========================================================
+   SUCCESS MESSAGE
+========================================================= */
+
+.auth-success {
+  width: 100%;
+
+  padding: 13px 15px;
+
+  margin-bottom: 22px;
+
+  border: 1px solid #b7e4c7;
+  border-radius: 10px;
+
+  background: #f0fff4;
+
+  color: #287a45;
+
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   PASSWORD HINT
+========================================================= */
+
+.password-hint {
+  display: block;
+
+  margin-top: 7px;
+
+  font-size: 12px;
+
+  color: #8a8f98;
+}
+
+
+/* =========================================================
+   BOTTOM SWITCH
+========================================================= */
 
 .auth-switch {
-  text-align: center;
-
   margin-top: 28px;
+
+  text-align: center;
 
   font-size: 13px;
 
@@ -383,37 +487,67 @@ body {
 }
 
 .auth-switch a {
+  margin-left: 5px;
+
   color: #171717;
 
   font-weight: 700;
 
   text-decoration: none;
-
-  margin-left: 5px;
 }
 
 .auth-switch a:hover {
   text-decoration: underline;
 }
 
-.forgot {
-  border: none;
 
-  background: none;
+/* =========================================================
+   LOADING SPINNER
+========================================================= */
 
-  padding: 0;
+.spinner {
+  width: 15px;
+  height: 15px;
 
-  font-size: 11px;
+  border: 2px solid #777;
+  border-top-color: white;
 
-  color: #555;
+  border-radius: 50%;
 
-  cursor: pointer;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 
-/* =========================
-   RESPONSIVE
-========================= */
+/* =========================================================
+   REGISTER-SPECIFIC HELPERS
+========================================================= */
+
+.password-label {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+}
+
+.password-label label {
+  margin: 0;
+}
+
+.password-label span {
+  font-size: 11px;
+  color: #999;
+}
+
+
+/* =========================================================
+   RESPONSIVE — TABLET
+========================================================= */
 
 @media (max-width: 850px) {
 
@@ -434,117 +568,77 @@ body {
   }
 
   .auth-form-section {
-    padding: 30px;
+    width: 100%;
+
+    padding: 40px 30px;
   }
 
   .mobile-logo {
     display: block;
 
-    font-size: 21px;
-
-    font-weight: 700;
-
-    margin-bottom: 70px;
+    margin-bottom: 60px;
   }
 
 }
 
-@media (max-width: 450px) {
+
+/* =========================================================
+   RESPONSIVE — MOBILE
+========================================================= */
+
+@media (max-width: 500px) {
 
   .auth-form-section {
-    padding: 25px 20px;
+    padding: 30px 20px;
+  }
+
+  .auth-form-wrapper {
+    max-width: 100%;
+  }
+
+  .mobile-logo {
+    margin-bottom: 45px;
+  }
+
+  .form-header {
+    margin-bottom: 30px;
   }
 
   .form-header h2 {
     font-size: 32px;
   }
 
-}
-
-
-
-
-
-
-
-/* =========================================
-   PASSWORD RECOVERY
-========================================= */
-
-.auth-success {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 13px 15px;
-  margin-bottom: 22px;
-
-  border: 1px solid #b7e4c7;
-  background: #f0fff4;
-  color: #287a45;
-
-  border-radius: 10px;
-
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.password-hint {
-  display: block;
-  margin-top: 7px;
-
-  color: #8a8f98;
-
-  font-size: 12px;
-}
-
-
-/* =========================================
-   FORGOT PASSWORD LINK
-========================================= */
-
-.forgot {
-  border: none;
-  background: transparent;
-
-  padding: 0;
-
-  color: #111;
-  font-size: 13px;
-  font-weight: 600;
-
-  cursor: pointer;
-
-  text-decoration: none;
-
-  transition: opacity 0.2s ease;
-}
-
-.forgot:hover {
-  opacity: 0.6;
-}
-
-
-/* =========================================
-   RESPONSIVE
-========================================= */
-
-@media (max-width: 768px) {
-
-  .auth-container {
-    min-height: 100vh;
+  .input-group {
+    margin-bottom: 19px;
   }
 
-  .auth-visual {
-    display: none;
+  .input-group input {
+    height: 50px;
   }
+
+  .auth-button {
+    height: 52px;
+  }
+
+}
+
+
+/* =========================================================
+   VERY SMALL SCREENS
+========================================================= */
+
+@media (max-width: 350px) {
 
   .auth-form-section {
-    width: 100%;
+    padding: 25px 15px;
   }
 
-  .auth-form-wrapper {
-    width: 100%;
-    max-width: 480px;
-    margin: 0 auto;
+  .form-header h2 {
+    font-size: 28px;
+  }
+
+  .label-row span {
+    display: none;
   }
 
 }

@@ -1,69 +1,140 @@
 const express = require("express");
-const ZodMiddleware = require("../middleware/ZodMiddleware");
-const AuthMiddleware = require('../middleware/AuthMiddleware')
+
+const ZodMiddleware =
+    require("../middleware/ZodMiddleware");
+
+const AuthMiddleware =
+    require("../middleware/AuthMiddleware");
 
 const {
-  createUserSchema,
-  updateUserSchema,
-  getUserSchema,
+    createUserSchema,
+    updateUserSchema,
+    getUserSchema
 } = require("../validator/userSchema");
 
-const userController = require("../controllers/userController");
+const userController =
+    require("../controllers/userController");
 
 const router = express.Router();
 
-// Get all users
-router.get("/", userController.getAllUsers);
-router.post("/login", userController.login);
-// reset password 
+// Resend verification email
 router.post(
-    "/reset-password",
-    userController.resetPassword
+    "/resend-verification",
+    userController.resendVerification
+);
+// ======================================================
+// EMAIL VERIFICATION
+// ======================================================
+
+router.get(
+    "/verify-email/:token",
+    userController.verifyEmail
 );
 
-// forgot password route 
+
+// ======================================================
+// LOGIN
+// ======================================================
+
+router.post(
+    "/login",
+    userController.login
+);
+
+
+// ======================================================
+// REGISTER
+// ======================================================
+
+router.post(
+    "/register",
+    ZodMiddleware(createUserSchema),
+    userController.createUser
+);
+
+
+// ======================================================
+// FORGOT PASSWORD
+// ======================================================
+
 router.post(
     "/forgot-password",
     userController.forgotPassword
 );
 
-// refresh route 
+
+// ======================================================
+// RESET PASSWORD
+// ======================================================
+
+router.post(
+    "/reset-password",
+    userController.resetPassword
+);
+
+
+// ======================================================
+// REFRESH TOKEN
+// ======================================================
+
 router.post(
     "/refresh",
     userController.RefreshAcessToken
 );
-// test route for jwt  
+
+
+// ======================================================
+// PROTECTED PROFILE TEST
+// ======================================================
+
 router.get(
     "/profile",
     AuthMiddleware,
     userController.getAllUsers
 );
-// Get one user
+
+
+// ======================================================
+// GET ALL USERS
+// ======================================================
+
 router.get(
-  "/:id",
-  ZodMiddleware(getUserSchema),
-  userController.getUserById
+    "/",
+    userController.getAllUsers
 );
 
-// Create user
-router.post(
-  "/",
-  ZodMiddleware(createUserSchema),
-  userController.createUser
+
+// ======================================================
+// GET USER BY ID
+// ======================================================
+
+router.get(
+    "/:id",
+    ZodMiddleware(getUserSchema),
+    userController.getUserById
 );
 
-// Update user
+
+// ======================================================
+// UPDATE USER
+// ======================================================
+
 router.put(
-  "/:id",
-  ZodMiddleware(updateUserSchema),
-  userController.updateUser
+    "/:id",
+    ZodMiddleware(updateUserSchema),
+    userController.updateUser
 );
 
-// Delete user
+
+// ======================================================
+// DELETE USER
+// ======================================================
+
 router.delete(
-  "/:id",
-  ZodMiddleware(getUserSchema),
-  userController.deleteUser
+    "/:id",
+    ZodMiddleware(getUserSchema),
+    userController.deleteUser
 );
+
 
 module.exports = router;

@@ -1,14 +1,13 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 function PublicRoutes() {
   const accessToken = localStorage.getItem("accessToken");
+  const location = useLocation();
 
-  // User is already logged in
   if (accessToken) {
     return <Navigate to="/home" replace />;
   }
 
-  // User is not logged in
   return <Outlet />;
 }
 
