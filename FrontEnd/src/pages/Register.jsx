@@ -13,13 +13,13 @@ function Register() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // Registration success
-  const [success, setSuccess] = useState(false);
+  // Registration success state
+  const [registered, setRegistered] = useState(false);
   const [countdown, setCountdown] = useState(12);
 
-  // =========================================
-  // PASSWORD VALIDATION RULES
-  // =========================================
+  // =========================
+  // PASSWORD RULES
+  // =========================
 
   const passwordRules = {
     length: formData.password.length >= 8,
@@ -36,13 +36,12 @@ function Register() {
     passwordRules.number &&
     passwordRules.special;
 
-
-  // =========================================
+  // =========================
   // AUTO REDIRECT AFTER SUCCESS
-  // =========================================
+  // =========================
 
   useEffect(() => {
-    if (!success) return;
+    if (!registered) return;
 
     if (countdown <= 0) {
       navigate("/login");
@@ -54,13 +53,11 @@ function Register() {
     }, 1000);
 
     return () => clearTimeout(timer);
+  }, [registered, countdown, navigate]);
 
-  }, [success, countdown, navigate]);
-
-
-  // =========================================
+  // =========================
   // HANDLE INPUT
-  // =========================================
+  // =========================
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -77,21 +74,19 @@ function Register() {
     }));
   };
 
-
-  // =========================================
+  // =========================
   // FRONTEND VALIDATION
-  // =========================================
+  // =========================
 
   const validateForm = () => {
     const newErrors = {};
 
     // Name
     if (!formData.name.trim()) {
-      newErrors.name = "Name is required.";
+      newErrors.name = "Full name is required.";
     } else if (formData.name.trim().length < 2) {
-      newErrors.name = "Name must contain at least 2 characters.";
+      newErrors.name = "Name must be at least 2 characters.";
     }
-
 
     // Email
     if (!formData.email.trim()) {
@@ -101,7 +96,6 @@ function Register() {
     ) {
       newErrors.email = "Please enter a valid email address.";
     }
-
 
     // Password
     if (!formData.password) {
@@ -116,47 +110,38 @@ function Register() {
     return Object.keys(newErrors).length === 0;
   };
 
-
-  // =========================================
-  // SUBMIT
-  // =========================================
+  // =========================
+  // REGISTER
+  // =========================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Don't submit again after success
-    if (success) return;
-
-    setErrors({});
-
-    const isValid = validateForm();
-
-    if (!isValid) {
+    // Validate before sending request
+    if (!validateForm()) {
       return;
     }
 
     setLoading(true);
+    setErrors({});
 
     try {
       const response = await fetch(
         "http://localhost:3000/user/register",
         {
           method: "POST",
-
           headers: {
             "Content-Type": "application/json",
           },
-
           body: JSON.stringify(formData),
         }
       );
 
       const data = await response.json();
 
-
-      // =========================================
+      // =========================
       // BACKEND ERROR
-      // =========================================
+      // =========================
 
       if (!response.ok) {
         if (data.errors) {
@@ -165,7 +150,6 @@ function Register() {
           Object.entries(data.errors).forEach(
             ([field, message]) => {
               const cleanField = field.replace("body.", "");
-
               formattedErrors[cleanField] = message;
             }
           );
@@ -174,879 +158,117 @@ function Register() {
         } else {
           setErrors({
             general:
-              data.message ||
-              "Registration failed. Please try again.",
+              data.message || "Registration failed.",
           });
         }
 
         return;
       }
 
+      // =========================
+      // REGISTRATION SUCCESS
+      // =========================
 
-      // =========================================
-      // SUCCESS
-      // =========================================
-
-      setSuccess(true);
+      setRegistered(true);
       setCountdown(12);
 
     } catch (error) {
-      console.error("Registration error:", error);
+      console.error(error);
 
       setErrors({
         general:
           "Unable to connect to the server. Please try again.",
       });
-
     } finally {
       setLoading(false);
     }
   };
 
+  // =========================
+  // SUCCESS SCREEN
+  // =========================
 
-  // =========================================
-  // PASSWORD RULE COMPONENT
-  // =========================================
+  if (registered) {
+    return (
+      <>
+        <style>{styles}</style>
 
-  const PasswordRule = ({ valid, children }) => (
-    <div className={`password-rule ${valid ? "valid" : ""}`}>
-      <span className="rule-icon">
-        {valid ? "✓" : "○"}
-      </span>
+        <div className="register-page">
+          <div className="success-card">
 
-      <span>{children}</span>
-    </div>
-  );
+            <div className="success-icon">
+              ✓
+            </div>
 
+            <p className="success-label">
+              ACCOUNT CREATED
+            </p>
+
+            <h1>
+              Check your email
+            </h1>
+
+            <p className="success-text">
+              Your account has been created successfully.
+              We have sent a verification link to:
+            </p>
+
+            <div className="email-box">
+              {formData.email}
+            </div>
+
+            <div className="success-warning">
+              <span>✉</span>
+              <div>
+                <strong>Verify your email</strong>
+                <p>
+                  Open the email and click the verification
+                  link to activate your account.
+                </p>
+              </div>
+            </div>
+
+            <div className="redirect-box">
+              <div className="redirect-loader"></div>
+
+              <p>
+                Redirecting to login in{" "}
+                <strong>{countdown}</strong> seconds...
+              </p>
+            </div>
+
+            <button
+              className="login-now-button"
+              onClick={() => navigate("/login")}
+            >
+              Go to Login →
+            </button>
+
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // =========================
+  // REGISTER PAGE
+  // =========================
 
   return (
     <>
-      <style>{`
-
-        * {
-          box-sizing: border-box;
-        }
-
-        body {
-          margin: 0;
-          font-family:
-            Inter,
-            system-ui,
-            -apple-system,
-            BlinkMacSystemFont,
-            "Segoe UI",
-            sans-serif;
-
-          background: #f4f1eb;
-          color: #171717;
-        }
-
-
-        /* =========================================
-           PAGE
-        ========================================= */
-
-        .register-page {
-          min-height: 100vh;
-          padding: 30px;
-
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-
-        /* =========================================
-           MAIN CARD
-        ========================================= */
-
-        .register-card {
-          width: 100%;
-          max-width: 1120px;
-          min-height: 720px;
-
-          display: grid;
-          grid-template-columns: 44% 56%;
-
-          background: #ffffff;
-
-          border-radius: 28px;
-          overflow: hidden;
-
-          box-shadow:
-            0 30px 80px rgba(0, 0, 0, 0.12);
-        }
-
-
-        /* =========================================
-           LEFT BRAND
-        ========================================= */
-
-        .register-brand {
-          position: relative;
-
-          padding: 48px;
-
-          background:
-            radial-gradient(
-              circle at 20% 20%,
-              #343434,
-              #171717 50%,
-              #090909 100%
-            );
-
-          color: white;
-
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-
-          overflow: hidden;
-        }
-
-
-        .register-brand::before {
-          content: "";
-
-          position: absolute;
-
-          width: 450px;
-          height: 450px;
-
-          border-radius: 50%;
-
-          border: 1px solid rgba(255, 255, 255, 0.08);
-
-          right: -220px;
-          top: -120px;
-        }
-
-
-        .register-brand::after {
-          content: "";
-
-          position: absolute;
-
-          width: 300px;
-          height: 300px;
-
-          border-radius: 50%;
-
-          border: 1px solid rgba(255, 255, 255, 0.06);
-
-          left: -170px;
-          bottom: -130px;
-        }
-
-
-        /* =========================================
-           LOGO
-        ========================================= */
-
-        .brand-logo {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-
-          font-size: 21px;
-          font-weight: 700;
-
-          position: relative;
-          z-index: 2;
-        }
-
-
-        .brand-icon {
-          width: 40px;
-          height: 40px;
-
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
-          border-radius: 12px;
-
-          background: #d7ff5f;
-          color: #171717;
-
-          font-weight: 900;
-        }
-
-
-        /* =========================================
-           BRAND CONTENT
-        ========================================= */
-
-        .brand-content {
-          position: relative;
-          z-index: 2;
-
-          max-width: 410px;
-        }
-
-
-        .brand-badge {
-          display: inline-block;
-
-          margin-bottom: 22px;
-
-          color: #d7ff5f;
-
-          font-size: 10px;
-          font-weight: 800;
-
-          letter-spacing: 2px;
-        }
-
-
-        .brand-content h1 {
-          margin: 0;
-
-          font-size: clamp(48px, 5vw, 64px);
-
-          line-height: 0.96;
-
-          letter-spacing: -4px;
-        }
-
-
-        .brand-content h1 span {
-          color: #d7ff5f;
-        }
-
-
-        .brand-content p {
-          margin-top: 28px;
-
-          max-width: 370px;
-
-          color: #a8a8a8;
-
-          font-size: 15px;
-          line-height: 1.7;
-        }
-
-
-        /* =========================================
-           BRAND BOTTOM
-        ========================================= */
-
-        .brand-bottom {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-
-          position: relative;
-          z-index: 2;
-        }
-
-
-        .mini-stat {
-          display: flex;
-          flex-direction: column;
-          gap: 5px;
-        }
-
-
-        .mini-stat strong {
-          color: #d7ff5f;
-          font-size: 13px;
-        }
-
-
-        .mini-stat span {
-          color: #888;
-
-          font-size: 10px;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-        }
-
-
-        .stat-line {
-          width: 30px;
-          height: 1px;
-          background: #444;
-        }
-
-
-        /* =========================================
-           FORM SIDE
-        ========================================= */
-
-        .register-form {
-          padding: 45px 65px;
-
-          display: flex;
-          flex-direction: column;
-        }
-
-
-        .form-top {
-          display: flex;
-          justify-content: flex-end;
-          align-items: center;
-          gap: 10px;
-
-          color: #999;
-
-          font-size: 11px;
-        }
-
-
-        .form-top a {
-          color: #171717;
-
-          font-weight: 700;
-          text-decoration: none;
-
-          transition: 0.2s;
-        }
-
-
-        .form-top a:hover {
-          opacity: 0.55;
-        }
-
-
-        /* =========================================
-           HEADING
-        ========================================= */
-
-        .register-heading {
-          margin-top: 48px;
-          margin-bottom: 30px;
-        }
-
-
-        .heading-label {
-          margin: 0 0 12px;
-
-          color: #999;
-
-          font-size: 10px;
-          font-weight: 800;
-
-          letter-spacing: 2px;
-        }
-
-
-        .register-heading h2 {
-          margin: 0;
-
-          color: #171717;
-
-          font-size: 40px;
-          line-height: 1;
-
-          letter-spacing: -2px;
-        }
-
-
-        .register-heading > p:last-child {
-          margin-top: 12px;
-
-          color: #888;
-
-          font-size: 14px;
-        }
-
-
-        .mobile-brand {
-          display: none;
-        }
-
-
-        /* =========================================
-           GENERAL ERROR
-        ========================================= */
-
-        .register-error {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-
-          margin-bottom: 20px;
-
-          padding: 13px 15px;
-
-          border: 1px solid #ffd1ce;
-          border-radius: 10px;
-
-          background: #fff2f1;
-
-          color: #c62828;
-
-          font-size: 12px;
-        }
-
-
-        .register-error-icon {
-          width: 20px;
-          height: 20px;
-
-          flex-shrink: 0;
-
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
-          border-radius: 50%;
-
-          background: #c62828;
-          color: white;
-
-          font-size: 11px;
-          font-weight: 700;
-        }
-
-
-        /* =========================================
-           SUCCESS
-        ========================================= */
-
-        .register-success {
-          margin-bottom: 24px;
-
-          padding: 17px;
-
-          border: 1px solid #b7e4c7;
-          border-radius: 12px;
-
-          background: #f0fff4;
-
-          color: #287a45;
-
-          animation: successAppear 0.35s ease;
-        }
-
-
-        @keyframes successAppear {
-          from {
-            opacity: 0;
-            transform: translateY(-8px);
-          }
-
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-
-        .success-title {
-          margin-bottom: 5px;
-
-          font-size: 14px;
-          font-weight: 700;
-        }
-
-
-        .success-text {
-          margin: 0;
-
-          font-size: 13px;
-          line-height: 1.5;
-        }
-
-
-        .success-countdown {
-          display: block;
-
-          margin-top: 9px;
-
-          color: #57906b;
-
-          font-size: 11px;
-        }
-
-
-        /* =========================================
-           INPUT
-        ========================================= */
-
-        .register-input {
-          margin-bottom: 20px;
-        }
-
-
-        .register-input label,
-        .password-label label {
-          display: block;
-
-          margin-bottom: 8px;
-
-          color: #555;
-
-          font-size: 10px;
-          font-weight: 800;
-
-          letter-spacing: 1.4px;
-        }
-
-
-        .password-label {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-
-        .password-label span {
-          color: #aaa;
-          font-size: 10px;
-        }
-
-
-        .input-wrapper {
-          height: 54px;
-
-          display: flex;
-          align-items: center;
-
-          padding: 0 15px;
-
-          border: 1px solid #dedede;
-          border-radius: 12px;
-
-          background: #fafafa;
-
-          transition: 0.2s ease;
-        }
-
-
-        .input-wrapper:focus-within {
-          border-color: #171717;
-
-          background: white;
-
-          box-shadow:
-            0 0 0 4px rgba(23, 23, 23, 0.05);
-        }
-
-
-        .input-wrapper.has-error {
-          border-color: #e0524d;
-          background: #fffafa;
-        }
-
-
-        .input-icon {
-          width: 30px;
-
-          color: #999;
-
-          font-size: 14px;
-        }
-
-
-        .input-wrapper input {
-          width: 100%;
-
-          flex: 1;
-
-          border: none;
-          outline: none;
-
-          background: transparent;
-
-          color: #171717;
-
-          font-size: 14px;
-        }
-
-
-        .input-wrapper input::placeholder {
-          color: #b5b5b5;
-        }
-
-
-        .field-error {
-          display: block;
-
-          margin-top: 7px;
-
-          color: #c62828;
-
-          font-size: 11px;
-          line-height: 1.4;
-        }
-
-
-        /* =========================================
-           PASSWORD REQUIREMENTS
-        ========================================= */
-
-        .password-requirements {
-          margin-top: 10px;
-          padding: 12px 13px;
-
-          border: 1px solid #eeeeee;
-          border-radius: 10px;
-
-          background: #fafafa;
-        }
-
-
-        .requirements-title {
-          margin-bottom: 8px;
-
-          color: #777;
-
-          font-size: 10px;
-          font-weight: 700;
-
-          text-transform: uppercase;
-          letter-spacing: 1px;
-        }
-
-
-        .password-rules {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-
-          gap: 6px 10px;
-        }
-
-
-        .password-rule {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-
-          color: #999;
-
-          font-size: 11px;
-
-          transition: 0.2s ease;
-        }
-
-
-        .rule-icon {
-          width: 15px;
-          height: 15px;
-
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
-          border-radius: 50%;
-
-          color: #aaa;
-
-          font-size: 10px;
-        }
-
-
-        .password-rule.valid {
-          color: #287a45;
-        }
-
-
-        .password-rule.valid .rule-icon {
-          background: #dff5e7;
-          color: #287a45;
-
-          font-weight: 800;
-        }
-
-
-        /* =========================================
-           BUTTON
-        ========================================= */
-
-        .register-button {
-          width: 100%;
-          height: 56px;
-
-          border: none;
-          border-radius: 12px;
-
-          background: #171717;
-          color: white;
-
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
-          gap: 13px;
-
-          font-size: 13px;
-          font-weight: 700;
-
-          cursor: pointer;
-
-          transition: 0.2s ease;
-        }
-
-
-        .register-button:hover:not(:disabled) {
-          background: #303030;
-
-          transform: translateY(-1px);
-        }
-
-
-        .register-button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-
-        .register-button-arrow {
-          font-size: 20px;
-          line-height: 0;
-        }
-
-
-        /* =========================================
-           SPINNER
-        ========================================= */
-
-        .spinner {
-          width: 16px;
-          height: 16px;
-
-          border: 2px solid #666;
-          border-top-color: white;
-
-          border-radius: 50%;
-
-          animation: spin 0.7s linear infinite;
-        }
-
-
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-
-        /* =========================================
-           FOOTER
-        ========================================= */
-
-        .register-footer {
-          margin-top: 18px;
-
-          text-align: center;
-        }
-
-
-        .register-footer span {
-          color: #aaa;
-
-          font-size: 10px;
-          line-height: 1.5;
-        }
-
-
-        /* =========================================
-           RESPONSIVE
-        ========================================= */
-
-        @media (max-width: 850px) {
-
-          .register-page {
-            padding: 15px;
-          }
-
-          .register-card {
-            grid-template-columns: 1fr;
-
-            max-width: 550px;
-
-            min-height: auto;
-          }
-
-          .register-brand {
-            display: none;
-          }
-
-          .register-form {
-            padding: 35px 30px;
-          }
-
-          .mobile-brand {
-            display: flex;
-
-            align-items: center;
-            gap: 10px;
-
-            margin-bottom: 35px;
-
-            font-size: 20px;
-            font-weight: 700;
-          }
-
-          .mobile-brand .brand-icon {
-            width: 34px;
-            height: 34px;
-
-            border-radius: 10px;
-          }
-
-          .register-heading {
-            margin-top: 0;
-          }
-        }
-
-
-        @media (max-width: 500px) {
-
-          .register-page {
-            padding: 0;
-
-            background: white;
-          }
-
-          .register-card {
-            min-height: 100vh;
-
-            border-radius: 0;
-
-            box-shadow: none;
-          }
-
-          .register-form {
-            padding: 25px 20px;
-          }
-
-          .register-heading h2 {
-            font-size: 33px;
-          }
-
-          .password-rules {
-            grid-template-columns: 1fr;
-          }
-
-          .form-top {
-            font-size: 10px;
-          }
-        }
-
-      `}</style>
-
-
-      {/* =========================================
-          PAGE
-      ========================================= */}
+      <style>{styles}</style>
 
       <div className="register-page">
 
         <div className="register-card">
 
-
-          {/* =====================================
-              LEFT BRAND PANEL
-          ===================================== */}
+          {/* =========================
+              LEFT SIDE
+          ========================= */}
 
           <div className="register-brand">
 
             <div className="brand-logo">
-
               <div className="brand-icon">
                 A
               </div>
@@ -1054,9 +276,7 @@ function Register() {
               <span>
                 ArtSpace
               </span>
-
             </div>
-
 
             <div className="brand-content">
 
@@ -1078,7 +298,6 @@ function Register() {
               </p>
 
             </div>
-
 
             <div className="brand-bottom">
 
@@ -1106,14 +325,11 @@ function Register() {
           </div>
 
 
-          {/* =====================================
-              FORM
-          ===================================== */}
+          {/* =========================
+              FORM SIDE
+          ========================= */}
 
           <div className="register-form">
-
-
-            {/* TOP LOGIN LINK */}
 
             <div className="form-top">
 
@@ -1128,19 +344,18 @@ function Register() {
             </div>
 
 
-            {/* HEADING */}
+            <div className="mobile-brand">
+
+              <div className="brand-icon">
+                A
+              </div>
+
+              ArtSpace
+
+            </div>
+
 
             <div className="register-heading">
-
-              <div className="mobile-brand">
-
-                <div className="brand-icon">
-                  A
-                </div>
-
-                ArtSpace
-
-              </div>
 
               <p className="heading-label">
                 CREATE ACCOUNT
@@ -1157,60 +372,21 @@ function Register() {
             </div>
 
 
-            {/* =====================================
-                SUCCESS MESSAGE
-            ===================================== */}
+            {/* GENERAL ERROR */}
 
-            {success && (
-
-              <div className="register-success">
-
-                <div className="success-title">
-                  Account created successfully! 🎉
-                </div>
-
-                <p className="success-text">
-                  We've sent a verification link to your
-                  email address. Please check your inbox
-                  and verify your email.
-                </p>
-
-                <small className="success-countdown">
-                  Redirecting to login in {countdown} seconds...
-                </small>
-
-              </div>
-
-            )}
-
-
-            {/* =====================================
-                GENERAL ERROR
-            ===================================== */}
-
-            {errors.general && !success && (
-
+            {errors.general && (
               <div className="register-error">
-
-                <span className="register-error-icon">
-                  !
-                </span>
-
+                <span>!</span>
                 {errors.general}
-
               </div>
-
             )}
 
-
-            {/* =====================================
-                FORM
-            ===================================== */}
 
             <form onSubmit={handleSubmit}>
 
-
-              {/* NAME */}
+              {/* =========================
+                  NAME
+              ========================= */}
 
               <div className="register-input">
 
@@ -1220,7 +396,7 @@ function Register() {
 
                 <div
                   className={`input-wrapper ${
-                    errors.name ? "has-error" : ""
+                    errors.name ? "input-error" : ""
                   }`}
                 >
 
@@ -1235,22 +411,22 @@ function Register() {
                     placeholder="Your full name"
                     value={formData.name}
                     onChange={handleChange}
-                    disabled={success}
-                    autoComplete="name"
                   />
 
                 </div>
 
                 {errors.name && (
-                  <span className="field-error">
+                  <small>
                     {errors.name}
-                  </span>
+                  </small>
                 )}
 
               </div>
 
 
-              {/* EMAIL */}
+              {/* =========================
+                  EMAIL
+              ========================= */}
 
               <div className="register-input">
 
@@ -1260,7 +436,7 @@ function Register() {
 
                 <div
                   className={`input-wrapper ${
-                    errors.email ? "has-error" : ""
+                    errors.email ? "input-error" : ""
                   }`}
                 >
 
@@ -1275,22 +451,22 @@ function Register() {
                     placeholder="you@example.com"
                     value={formData.email}
                     onChange={handleChange}
-                    disabled={success}
-                    autoComplete="email"
                   />
 
                 </div>
 
                 {errors.email && (
-                  <span className="field-error">
+                  <small>
                     {errors.email}
-                  </span>
+                  </small>
                 )}
 
               </div>
 
 
-              {/* PASSWORD */}
+              {/* =========================
+                  PASSWORD
+              ========================= */}
 
               <div className="register-input">
 
@@ -1306,10 +482,9 @@ function Register() {
 
                 </div>
 
-
                 <div
                   className={`input-wrapper ${
-                    errors.password ? "has-error" : ""
+                    errors.password ? "input-error" : ""
                   }`}
                 >
 
@@ -1324,8 +499,6 @@ function Register() {
                     placeholder="Create a strong password"
                     value={formData.password}
                     onChange={handleChange}
-                    disabled={success}
-                    autoComplete="new-password"
                   />
 
                 </div>
@@ -1335,102 +508,68 @@ function Register() {
 
                 <div className="password-requirements">
 
-                  <div className="requirements-title">
-                    Password must contain
-                  </div>
+                  <PasswordRule
+                    valid={passwordRules.length}
+                    text="At least 8 characters"
+                  />
 
+                  <PasswordRule
+                    valid={passwordRules.uppercase}
+                    text="One uppercase letter"
+                  />
 
-                  <div className="password-rules">
+                  <PasswordRule
+                    valid={passwordRules.lowercase}
+                    text="One lowercase letter"
+                  />
 
-                    <PasswordRule
-                      valid={passwordRules.length}
-                    >
-                      At least 8 characters
-                    </PasswordRule>
+                  <PasswordRule
+                    valid={passwordRules.number}
+                    text="One number"
+                  />
 
-
-                    <PasswordRule
-                      valid={passwordRules.uppercase}
-                    >
-                      One uppercase letter
-                    </PasswordRule>
-
-
-                    <PasswordRule
-                      valid={passwordRules.lowercase}
-                    >
-                      One lowercase letter
-                    </PasswordRule>
-
-
-                    <PasswordRule
-                      valid={passwordRules.number}
-                    >
-                      One number
-                    </PasswordRule>
-
-
-                    <PasswordRule
-                      valid={passwordRules.special}
-                    >
-                      One special character
-                    </PasswordRule>
-
-                  </div>
+                  <PasswordRule
+                    valid={passwordRules.special}
+                    text="One special character"
+                  />
 
                 </div>
 
-
                 {errors.password && (
-                  <span className="field-error">
+                  <small>
                     {errors.password}
-                  </span>
+                  </small>
                 )}
 
               </div>
 
 
-              {/* =====================================
+              {/* =========================
                   BUTTON
-              ===================================== */}
+              ========================= */}
 
               <button
                 type="submit"
                 className="register-button"
-                disabled={loading || success}
+                disabled={loading}
               >
 
                 {loading ? (
-
                   <>
                     <span className="spinner"></span>
                     Creating account...
                   </>
-
-                ) : success ? (
-
-                  <>
-                    Account created ✓
-                  </>
-
                 ) : (
-
                   <>
                     Create my account
-
-                    <span className="register-button-arrow">
-                      →
-                    </span>
+                    <span>→</span>
                   </>
-
                 )}
 
               </button>
 
             </form>
 
-
-            {/* FOOTER */}
 
             <div className="register-footer">
 
@@ -1446,9 +585,1009 @@ function Register() {
         </div>
 
       </div>
-
     </>
   );
 }
+
+
+// =====================================
+// PASSWORD RULE COMPONENT
+// =====================================
+
+function PasswordRule({ valid, text }) {
+  return (
+    <div
+      className={`password-rule ${
+        valid ? "valid" : ""
+      }`}
+    >
+      <span className="rule-icon">
+        {valid ? "✓" : "○"}
+      </span>
+
+      <span>
+        {text}
+      </span>
+    </div>
+  );
+}
+
+
+// =====================================
+// INLINE CSS
+// =====================================
+
+const styles = `
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  background: #f4f1eb;
+  color: #171717;
+}
+
+
+/* =====================================
+   PAGE
+===================================== */
+
+.register-page {
+  min-height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px;
+
+  background:
+    radial-gradient(
+      circle at 10% 10%,
+      #ffffff 0,
+      #f4f1eb 40%,
+      #eeeae2 100%
+    );
+}
+
+
+/* =====================================
+   MAIN CARD
+===================================== */
+
+.register-card {
+  width: 1100px;
+  max-width: 100%;
+
+  min-height: 700px;
+
+  display: grid;
+  grid-template-columns: 45% 55%;
+
+  background: white;
+
+  border-radius: 28px;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.12);
+}
+
+
+/* =====================================
+   LEFT BRAND
+===================================== */
+
+.register-brand {
+  position: relative;
+
+  padding: 50px;
+
+  background:
+    radial-gradient(
+      circle at 80% 10%,
+      #383838 0,
+      #181818 40%,
+      #090909 100%
+    );
+
+  color: white;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  overflow: hidden;
+}
+
+.register-brand::before {
+  content: "";
+
+  position: absolute;
+
+  width: 500px;
+  height: 500px;
+
+  border-radius: 50%;
+
+  border: 1px solid rgba(255,255,255,0.08);
+
+  right: -250px;
+  top: -180px;
+}
+
+.register-brand::after {
+  content: "";
+
+  position: absolute;
+
+  width: 350px;
+  height: 350px;
+
+  border-radius: 50%;
+
+  border: 1px solid rgba(255,255,255,0.06);
+
+  left: -200px;
+  bottom: -170px;
+}
+
+
+/* =====================================
+   BRAND LOGO
+===================================== */
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  font-size: 21px;
+  font-weight: 700;
+
+  position: relative;
+  z-index: 2;
+}
+
+.brand-icon {
+  width: 40px;
+  height: 40px;
+
+  border-radius: 12px;
+
+  background: #d7ff5f;
+
+  color: #171717;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-weight: 900;
+}
+
+
+/* =====================================
+   BRAND CONTENT
+===================================== */
+
+.brand-content {
+  position: relative;
+  z-index: 2;
+
+  max-width: 420px;
+}
+
+.brand-badge {
+  display: inline-block;
+
+  margin-bottom: 25px;
+
+  color: #d7ff5f;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 2px;
+}
+
+.brand-content h1 {
+  margin: 0;
+
+  font-size: 58px;
+
+  line-height: 0.98;
+
+  letter-spacing: -3px;
+}
+
+.brand-content h1 span {
+  color: #d7ff5f;
+}
+
+.brand-content p {
+  margin-top: 28px;
+
+  max-width: 380px;
+
+  color: #a7a7a7;
+
+  font-size: 15px;
+
+  line-height: 1.7;
+}
+
+
+/* =====================================
+   BRAND BOTTOM
+===================================== */
+
+.brand-bottom {
+  position: relative;
+  z-index: 2;
+
+  display: flex;
+  align-items: center;
+
+  gap: 18px;
+}
+
+.mini-stat {
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.mini-stat strong {
+  color: #d7ff5f;
+
+  font-size: 13px;
+}
+
+.mini-stat span {
+  color: #999;
+
+  font-size: 10px;
+
+  text-transform: uppercase;
+
+  letter-spacing: 1px;
+}
+
+.stat-line {
+  width: 35px;
+  height: 1px;
+
+  background: #444;
+}
+
+
+/* =====================================
+   FORM
+===================================== */
+
+.register-form {
+  padding: 45px 65px;
+
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* =====================================
+   TOP LINK
+===================================== */
+
+.form-top {
+  display: flex;
+
+  justify-content: flex-end;
+  align-items: center;
+
+  gap: 10px;
+
+  color: #999;
+
+  font-size: 11px;
+}
+
+.form-top a {
+  color: #171717;
+
+  font-weight: 700;
+
+  text-decoration: none;
+
+  transition: 0.2s;
+}
+
+.form-top a:hover {
+  opacity: 0.55;
+}
+
+
+/* =====================================
+   MOBILE BRAND
+===================================== */
+
+.mobile-brand {
+  display: none;
+
+  align-items: center;
+
+  gap: 10px;
+
+  font-weight: 700;
+}
+
+
+/* =====================================
+   HEADING
+===================================== */
+
+.register-heading {
+  margin-top: 48px;
+
+  margin-bottom: 30px;
+}
+
+.heading-label {
+  margin: 0 0 12px;
+
+  color: #999;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 2px;
+}
+
+.register-heading h2 {
+  margin: 0;
+
+  font-size: 40px;
+
+  line-height: 1.1;
+
+  letter-spacing: -1.8px;
+}
+
+.register-heading > p:last-child {
+  margin-top: 10px;
+
+  color: #888;
+
+  font-size: 14px;
+}
+
+
+/* =====================================
+   GENERAL ERROR
+===================================== */
+
+.register-error {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  margin-bottom: 20px;
+
+  padding: 12px 14px;
+
+  border-radius: 10px;
+
+  border: 1px solid #ffd0cc;
+
+  background: #fff2f1;
+
+  color: #c62828;
+
+  font-size: 12px;
+}
+
+.register-error span {
+  width: 19px;
+  height: 19px;
+
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #c62828;
+
+  color: white;
+
+  font-weight: 800;
+
+  font-size: 11px;
+}
+
+
+/* =====================================
+   INPUT
+===================================== */
+
+.register-input {
+  margin-bottom: 20px;
+}
+
+.register-input label {
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: #555;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 1.4px;
+}
+
+.password-label {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+}
+
+.password-label label {
+  margin-bottom: 8px;
+}
+
+.password-label span {
+  color: #aaa;
+
+  font-size: 10px;
+}
+
+
+/* =====================================
+   INPUT WRAPPER
+===================================== */
+
+.input-wrapper {
+  height: 54px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 16px;
+
+  border: 1px solid #dedede;
+
+  border-radius: 12px;
+
+  background: #fafafa;
+
+  transition:
+    border 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.input-wrapper:focus-within {
+  border-color: #171717;
+
+  background: white;
+
+  box-shadow:
+    0 0 0 4px rgba(23,23,23,0.05);
+}
+
+.input-wrapper.input-error {
+  border-color: #e05a52;
+
+  background: #fffafa;
+}
+
+.input-icon {
+  width: 30px;
+
+  color: #999;
+
+  font-size: 14px;
+}
+
+.input-wrapper input {
+  flex: 1;
+
+  width: 100%;
+
+  border: none;
+
+  outline: none;
+
+  background: transparent;
+
+  color: #171717;
+
+  font-size: 14px;
+}
+
+.input-wrapper input::placeholder {
+  color: #b5b5b5;
+}
+
+
+/* =====================================
+   FIELD ERROR
+===================================== */
+
+.register-input small {
+  display: block;
+
+  margin-top: 7px;
+
+  color: #d93025;
+
+  font-size: 11px;
+}
+
+
+/* =====================================
+   PASSWORD REQUIREMENTS
+===================================== */
+
+.password-requirements {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 7px 12px;
+
+  margin-top: 11px;
+
+  padding: 12px;
+
+  border-radius: 10px;
+
+  background: #f7f7f7;
+
+  border: 1px solid #eeeeee;
+}
+
+.password-rule {
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  color: #999;
+
+  font-size: 11px;
+
+  transition: 0.2s;
+}
+
+.password-rule.valid {
+  color: #287a45;
+}
+
+.rule-icon {
+  width: 16px;
+  height: 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  font-size: 10px;
+
+  font-weight: 800;
+}
+
+.password-rule.valid .rule-icon {
+  background: #dff6e7;
+
+  color: #287a45;
+}
+
+
+/* =====================================
+   BUTTON
+===================================== */
+
+.register-button {
+  width: 100%;
+
+  height: 56px;
+
+  margin-top: 4px;
+
+  border: none;
+
+  border-radius: 12px;
+
+  background: #171717;
+
+  color: white;
+
+  font-size: 13px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 14px;
+
+  transition: 0.2s ease;
+}
+
+.register-button:hover:not(:disabled) {
+  background: #2c2c2c;
+
+  transform: translateY(-1px);
+}
+
+.register-button:disabled {
+  opacity: 0.6;
+
+  cursor: not-allowed;
+}
+
+.register-button span:last-child {
+  font-size: 20px;
+}
+
+
+/* =====================================
+   SPINNER
+===================================== */
+
+.spinner {
+  width: 16px;
+  height: 16px;
+
+  border: 2px solid #777;
+
+  border-top-color: white;
+
+  border-radius: 50%;
+
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* =====================================
+   FOOTER
+===================================== */
+
+.register-footer {
+  margin-top: 18px;
+
+  text-align: center;
+}
+
+.register-footer span {
+  color: #aaa;
+
+  font-size: 10px;
+
+  line-height: 1.5;
+}
+
+
+/* =====================================
+   SUCCESS PAGE
+===================================== */
+
+.success-card {
+  width: 520px;
+
+  max-width: 100%;
+
+  padding: 55px 50px;
+
+  background: white;
+
+  border-radius: 24px;
+
+  text-align: center;
+
+  box-shadow:
+    0 30px 80px rgba(0,0,0,0.12);
+}
+
+.success-icon {
+  width: 70px;
+  height: 70px;
+
+  margin: 0 auto 25px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #e4f8eb;
+
+  color: #287a45;
+
+  font-size: 32px;
+
+  font-weight: 800;
+}
+
+.success-label {
+  margin: 0 0 12px;
+
+  color: #287a45;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 2px;
+}
+
+.success-card h1 {
+  margin: 0;
+
+  font-size: 38px;
+
+  letter-spacing: -1.5px;
+}
+
+.success-text {
+  margin: 15px auto 20px;
+
+  max-width: 390px;
+
+  color: #777;
+
+  font-size: 14px;
+
+  line-height: 1.6;
+}
+
+.email-box {
+  padding: 13px;
+
+  margin-bottom: 20px;
+
+  border-radius: 10px;
+
+  background: #f6f6f6;
+
+  color: #171717;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  word-break: break-word;
+}
+
+.success-warning {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 12px;
+
+  text-align: left;
+
+  padding: 15px;
+
+  border-radius: 12px;
+
+  background: #fff9e9;
+
+  border: 1px solid #f5e4b5;
+
+  color: #755d20;
+
+  font-size: 12px;
+}
+
+.success-warning > span {
+  font-size: 18px;
+}
+
+.success-warning strong {
+  display: block;
+
+  margin-bottom: 4px;
+}
+
+.success-warning p {
+  margin: 0;
+
+  line-height: 1.5;
+}
+
+
+/* =====================================
+   REDIRECT
+===================================== */
+
+.redirect-box {
+  margin-top: 25px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  gap: 8px;
+}
+
+.redirect-box p {
+  margin: 0;
+
+  color: #888;
+
+  font-size: 12px;
+}
+
+.redirect-box strong {
+  color: #171717;
+}
+
+.redirect-loader {
+  width: 24px;
+  height: 24px;
+
+  border: 3px solid #e5e5e5;
+
+  border-top-color: #171717;
+
+  border-radius: 50%;
+
+  animation: spin 0.8s linear infinite;
+}
+
+
+/* =====================================
+   LOGIN BUTTON
+===================================== */
+
+.login-now-button {
+  width: 100%;
+
+  height: 50px;
+
+  margin-top: 20px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background: #171717;
+
+  color: white;
+
+  font-size: 13px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.login-now-button:hover {
+  background: #333;
+
+  transform: translateY(-1px);
+}
+
+
+/* =====================================
+   RESPONSIVE
+===================================== */
+
+@media (max-width: 850px) {
+
+  .register-page {
+    padding: 15px;
+  }
+
+  .register-card {
+    grid-template-columns: 1fr;
+
+    max-width: 550px;
+
+    min-height: auto;
+  }
+
+  .register-brand {
+    display: none;
+  }
+
+  .register-form {
+    padding: 35px 30px;
+  }
+
+  .mobile-brand {
+    display: flex;
+
+    margin-bottom: 35px;
+  }
+
+  .register-heading {
+    margin-top: 0;
+  }
+
+}
+
+
+@media (max-width: 500px) {
+
+  .register-page {
+    padding: 0;
+
+    background: white;
+  }
+
+  .register-card {
+    min-height: 100vh;
+
+    border-radius: 0;
+
+    box-shadow: none;
+  }
+
+  .register-form {
+    padding: 25px 20px;
+  }
+
+  .register-heading h2 {
+    font-size: 32px;
+  }
+
+  .password-requirements {
+    grid-template-columns: 1fr;
+  }
+
+  .success-card {
+    min-height: 100vh;
+
+    border-radius: 0;
+
+    box-shadow: none;
+
+    padding: 45px 25px;
+  }
+
+  .success-card h1 {
+    font-size: 32px;
+  }
+
+}
+`;
 
 export default Register;

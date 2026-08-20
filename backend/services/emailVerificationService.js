@@ -10,12 +10,17 @@ const generateVerificationToken = async (userId) => {
         .createHash("sha256")
         .update(token)
         .digest("hex");
-
-    await User.findByIdAndUpdate(userId, {
+const user = await User.findByIdAndUpdate(
+    userId,
+    {
         emailVerificationToken: hashedToken,
-        emailVerificationExpires: Date.now() + 15 * 60 * 1000
-    });
-await sendVerificationEmail(user.email, verificationToken);
+        emailVerificationExpires: Date.now() + 1 * 60 * 1000
+    },
+    { new: true }
+);
+
+await sendVerificationEmail(user.email, token);
+// await sendVerificationEmail(user.email, verificationToken);
 
 
     return token;

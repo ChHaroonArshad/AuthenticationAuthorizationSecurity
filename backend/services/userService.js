@@ -55,44 +55,23 @@ const resendVerification = async (email) => {
 // VERIFY EMAIL
 // ======================================================
 const verifyEmail = async (verificationToken) => {
+  const hashedToken = crypto.createHash("sha256").update(verificationToken).digest("hex");
+  console.log("🔍 Hashed token:", hashedToken);
 
-    const hashedToken = crypto
-        .createHash("sha256")
-        .update(verificationToken)
-        .digest("hex");
+  const user = await User.findOne({ emailVerificationToken: hashedToken });
+  console.log("🔍 User found:", user ? user.email : "None");
 
-    // First find the user using the token
-    const user = await User.findOne({
-        emailVerificationToken: hashedToken
-    });
+  if (!user) throw new Error("Invalid verification token");
+  if (!user.emailVerificationExpires || user.emailVerificationExpires.getTime() < Date.now())
+    throw new Error("Verification link has expired");
+  if (user.emailVerified) throw new Error("Email is already verified");
 
-    // Token does not exist in database
-    if (!user) {
-        throw new Error("Invalid verification token");
-    }
-
-    // Token exists but has expired
-    if (user.emailVerificationExpires < Date.now()) {
-        throw new Error("Verification link has expired");
-    }
-
-    // Email is already verified
-    if (user.emailVerified) {
-        throw new Error("Email is already verified");
-    }
-
-    // Verify email
-    user.emailVerified = true;
-
-    // Remove verification token
-    user.emailVerificationToken = null;
-    user.emailVerificationExpires = null;
-
-    await user.save();
-
-    return user;
+  user.emailVerified = true;
+  user.emailVerificationToken = null;
+  user.emailVerificationExpires = null;
+  await user.save();
+  return user;
 };
-
 // ======================================================
 // FORGOT PASSWORD
 // ======================================================
@@ -300,7 +279,7 @@ const createUser = async (userData) => {
         emailVerificationToken: hashedToken,
 
         emailVerificationExpires:
-            Date.now() + 15 * 60 * 1000
+            Date.now() + 1* 60 * 1000
     });
 
     // 4. Confirm what was actually saved in MongoDB

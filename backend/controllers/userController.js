@@ -24,39 +24,22 @@ const resendVerification = async (req, res, next) => {
 // ======================================================
 // VERIFY EMAIL
 // ======================================================
+// userController.js
 
 const verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    console.log("🔍 Token received:", token);   // 🔥 LOG THIS
 
-    try {
+    const user = await userService.verifyEmail(token);
+    console.log("✅ Verification successful for user:", user.email);
 
-        const { token } = req.params;
-
-        console.log(
-            "VERIFICATION TOKEN FROM URL:",
-            token
-        );
-
-        await userService.verifyEmail(token);
-
-        res.status(200).json({
-            message:
-                "Email verified successfully"
-        });
-
-    } catch (error) {
-
-        console.log(
-            "VERIFICATION ERROR:",
-            error.message
-        );
-
-        res.status(400).json({
-            message: error.message
-        });
-    }
+    res.status(200).json({ message: "Email verified successfully" });
+  } catch (error) {
+    console.log("❌ Verification error:", error.message);   // 🔥 LOG THIS
+    res.status(400).json({ message: error.message });
+  }
 };
-
-
 // ======================================================
 // REGISTER
 // ======================================================
