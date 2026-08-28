@@ -12,10 +12,10 @@ const postSchema = new mongoose.Schema(
             required: true
         },
 
-        user: {
+        owner: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
-            required: true
+            required: true          // every post MUST have an owner
         }
     },
     {

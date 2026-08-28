@@ -171,16 +171,16 @@ const refreshAccessToken = async (refreshToken) => {
         throw new Error("User not found");
     }
 
-    const accessToken = jwt.sign(
-        {
-            userID: user._id
-        },
-        process.env.JWT_SECRET,
-        {
-            expiresIn: "15m"
-        }
-    );
-
+ const accessToken = jwt.sign(
+    {
+        userID: user._id,
+        role: user.role
+    },
+    process.env.JWT_SECRET,
+    {
+        expiresIn: "15m"
+    }
+);
     return accessToken;
 };
 
@@ -196,58 +196,47 @@ const login = async (email, password) => {
         .select("+password");
 
     if (!user) {
-        throw new Error(
-            "Invalid email or password"
-        );
+        throw new Error("Invalid email or password");
     }
 
-    const pepper =
-        process.env.PASSWORD_PEPPER;
+    const pepper = process.env.PASSWORD_PEPPER;
 
-    const checkPassword =
-        await bcrypt.compare(
-            password + pepper,
-            user.password
-        );
+    const checkPassword = await bcrypt.compare(
+        password + pepper,
+        user.password
+    );
 
     if (!checkPassword) {
-        throw new Error(
-            "Invalid email or password"
-        );
+        throw new Error("Invalid email or password");
     }
 
+    // role is now inside the token
     const accessToken = jwt.sign(
         {
-            userID: user._id
+            userID: user._id,
+            role: user.role        // ← only change
         },
         process.env.JWT_SECRET,
-        {
-            expiresIn: "1h"
-        }
+        { expiresIn: "1h" }
     );
 
     const refreshToken = jwt.sign(
         {
-            userID: user._id
+            userID: user._id,
+            role: user.role        // ← only change
         },
         process.env.JWT_REFRESH_SECRET,
-        {
-            expiresIn: "7d"
-        }
+        { expiresIn: "7d" }
     );
 
-    return {
-        user,
-        accessToken,
-        refreshToken
-    };
+    return { user, accessToken, refreshToken };
 };
-
 
 // ======================================================
 // CREATE USER / REGISTER
 // ======================================================
 const createUser = async (userData) => {
+
     const existingUser = await User.findOne({
         email: userData.email
     });
@@ -256,50 +245,44 @@ const createUser = async (userData) => {
         throw new Error("Email already registered");
     }
 
-    // 1. Generate plain verification token
+    // Determine role safely
+    // Only buyer or seller allowed from UI
+    // Admin only via secret key
+    let role = "buyer";
+
+    if (userData.adminKey) {
+        if (userData.adminKey === process.env.ADMIN_SECRET_KEY) {
+            role = "admin";
+        } else {
+            throw new Error("Invalid admin key");
+        }
+    } else if (userData.role === "seller") {
+        role = "seller";
+    }
+
     const verificationToken = crypto
         .randomBytes(32)
         .toString("hex");
 
-    // 2. Hash token
     const hashedToken = crypto
         .createHash("sha256")
         .update(verificationToken)
         .digest("hex");
 
-    console.log("PLAIN VERIFICATION TOKEN:", verificationToken);
-    console.log("HASHED VERIFICATION TOKEN:", hashedToken);
-
-    // 3. Create user WITH verification data
     const user = await User.create({
-        ...userData,
-
+        name: userData.name,
+        email: userData.email,
+        password: userData.password,
+        role,
         emailVerified: false,
-
         emailVerificationToken: hashedToken,
-
-        emailVerificationExpires:
-            Date.now() + 1* 60 * 1000
+        emailVerificationExpires: Date.now() + 15 * 60 * 1000
     });
 
-    // 4. Confirm what was actually saved in MongoDB
-    console.log("SAVED USER TOKEN:", user.emailVerificationToken);
-    console.log(
-        "SAVED USER EXPIRY:",
-        user.emailVerificationExpires
-    );
-
-    // 5. Send plain token through email
-    await sendVerificationEmail(
-        user.email,
-        verificationToken
-    );
-
-    console.log("VERIFICATION EMAIL SENT");
+    await sendVerificationEmail(user.email, verificationToken);
 
     return user;
 };
-
 // ======================================================
 // GET ALL USERS
 // ======================================================
@@ -376,7 +359,41 @@ const deleteUser = async (id) => {
     return user;
 };
 
+// ======================================================
+// GRANT PERMISSION
+// ======================================================
+const grantPermission = async (userId, permission) => {
+    const user = await User.findById(userId);
 
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    // Don't duplicate — only add if not already there
+    if (!user.permissions.includes(permission)) {
+        user.permissions.push(permission);
+        await user.save();
+    }
+
+    return user;
+};
+
+
+// ======================================================
+// REVOKE PERMISSION
+// ======================================================
+const revokePermission = async (userId, permission) => {
+    const user = await User.findById(userId);
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    user.permissions = user.permissions.filter(p => p !== permission);
+    await user.save();
+
+    return user;
+};
 module.exports = {
     login,
     getAllUsers,
@@ -388,5 +405,7 @@ module.exports = {
     forgotPassword,
     resetPassword,
     verifyEmail,
-    resendVerification
+    resendVerification,
+    grantPermission,      // ← add
+    revokePermission      // ← add
 };

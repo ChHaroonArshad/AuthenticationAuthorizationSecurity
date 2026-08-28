@@ -356,6 +356,61 @@ const deleteUser = async (
 };
 
 
+// ======================================================
+// GRANT PERMISSION — admin only
+// ======================================================
+const grantPermission = async (req, res, next) => {
+    try {
+        const { userId, permission } = req.body;
+
+        if (!userId || !permission) {
+            return res.status(400).json({
+                message: "userId and permission are required"
+            });
+        }
+
+        const user = await userService.grantPermission(userId, permission);
+
+        res.status(200).json({
+            message: `Permission "${permission}" granted`,
+            data: {
+                userId: user._id,
+                permissions: user.permissions
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+// ======================================================
+// REVOKE PERMISSION — admin only
+// ======================================================
+const revokePermission = async (req, res, next) => {
+    try {
+        const { userId, permission } = req.body;
+
+        if (!userId || !permission) {
+            return res.status(400).json({
+                message: "userId and permission are required"
+            });
+        }
+
+        const user = await userService.revokePermission(userId, permission);
+
+        res.status(200).json({
+            message: `Permission "${permission}" revoked`,
+            data: {
+                userId: user._id,
+                permissions: user.permissions
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     verifyEmail,
     createUser,
@@ -367,6 +422,7 @@ module.exports = {
     getUserById,
     updateUser,
     deleteUser,
-    resendVerification
-
+    resendVerification,
+    grantPermission,      // ← add
+    revokePermission      // ← add
 };

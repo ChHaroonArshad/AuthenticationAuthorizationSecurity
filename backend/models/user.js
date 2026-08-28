@@ -7,23 +7,33 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true
         },
-
         email: {
             type: String,
             required: true,
             unique: true
         },
-
         password: {
             type: String,
-            required: true,
+            required: false,      // Google users have no password
             select: false
+        },
+        googleId: {
+            type: String,
+            default: null
+        },
+        role: {
+            type: String,
+            enum: ["buyer", "seller", "admin"],
+            default: "buyer"
+        },
+        permissions: {
+            type: [String],
+            default: []
         },
         resetPasswordToken: {
             type: String,
             default: null
         },
-
         resetPasswordExpires: {
             type: Date,
             default: null
@@ -32,12 +42,10 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: false
         },
-
         emailVerificationToken: {
             type: String,
             default: null
         },
-
         emailVerificationExpires: {
             type: Date,
             default: null
@@ -48,22 +56,16 @@ const userSchema = new mongoose.Schema(
     }
 );
 
-
 userSchema.pre("save", async function () {
-
     if (!this.isModified("password")) {
         return;
     }
-
     const pepper = process.env.PASSWORD_PEPPER;
-
     this.password = await bcrypt.hash(
         this.password + pepper,
         12
     );
 });
 
-
 const User = mongoose.model("User", userSchema);
-
 module.exports = User;

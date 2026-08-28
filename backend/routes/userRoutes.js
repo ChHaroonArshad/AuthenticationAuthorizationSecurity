@@ -5,18 +5,83 @@ const ZodMiddleware =
 
 const AuthMiddleware =
     require("../middleware/AuthMiddleware");
-
+const RoleMiddleware = require("../middleware/RoleMiddleware");
 const {
     createUserSchema,
     updateUserSchema,
     getUserSchema
 } = require("../validator/userSchema");
-
+const PermissionMiddleware = require("../middleware/PermissionMiddleware");
 const userController =
     require("../controllers/userController");
-
+const rateLimit = require("express-rate-limit");
 const router = express.Router();
 
+
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1,
+    message: {
+        message: "Too many login attempts. Please try again after 15 minutes"
+    }
+});
+
+// ======================================================
+// GRANT PERMISSION — admin only
+// ======================================================
+router.post(
+    "/admin/grant-permission",
+    AuthMiddleware,
+    RoleMiddleware("admin"),
+    userController.grantPermission
+);
+
+// ======================================================
+// REVOKE PERMISSION — admin only
+// ======================================================
+router.post(
+    "/admin/revoke-permission",
+    AuthMiddleware,
+    RoleMiddleware("admin"),
+    userController.revokePermission
+);
+// ======================================================
+// ADMIN ONLY — get all users
+// ======================================================
+router.get(
+    "/admin/users",
+    AuthMiddleware,
+    RoleMiddleware("admin"),
+    userController.getAllUsers
+);
+
+// ======================================================
+// SELLER ONLY — seller dashboard placeholder
+// ======================================================
+router.get(
+    "/seller/dashboard",
+    AuthMiddleware,
+    RoleMiddleware("seller"),
+    (req, res) => {
+        res.status(200).json({
+            message: `Welcome seller ${req.user.name}`
+        });
+    }
+);
+
+// ======================================================
+// ADMIN OR SELLER — shared route example
+// ======================================================
+router.get(
+    "/manage/products",
+    AuthMiddleware,
+    RoleMiddleware("admin", "seller"),
+    (req, res) => {
+        res.status(200).json({
+            message: `Welcome ${req.user.role} ${req.user.name}`
+        });
+    }
+);
 // Resend verification email
 router.post(
     "/resend-verification",
@@ -38,9 +103,9 @@ router.get(
 
 router.post(
     "/login",
+    loginLimiter,
     userController.login
 );
-
 
 // ======================================================
 // REGISTER

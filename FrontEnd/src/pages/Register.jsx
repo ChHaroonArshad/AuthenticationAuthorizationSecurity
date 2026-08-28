@@ -8,18 +8,15 @@ function Register() {
     name: "",
     email: "",
     password: "",
+    role: "buyer",
+    adminKey: ""
   });
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-
-  // Registration success state
   const [registered, setRegistered] = useState(false);
   const [countdown, setCountdown] = useState(12);
-
-  // =========================
-  // PASSWORD RULES
-  // =========================
+  const [showAdminKey, setShowAdminKey] = useState(false);
 
   const passwordRules = {
     length: formData.password.length >= 8,
@@ -36,343 +33,176 @@ function Register() {
     passwordRules.number &&
     passwordRules.special;
 
-  // =========================
-  // AUTO REDIRECT AFTER SUCCESS
-  // =========================
-
   useEffect(() => {
     if (!registered) return;
-
-    if (countdown <= 0) {
-      navigate("/login");
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setCountdown((prev) => prev - 1);
-    }, 1000);
-
+    if (countdown <= 0) { navigate("/login"); return; }
+    const timer = setTimeout(() => setCountdown((prev) => prev - 1), 1000);
     return () => clearTimeout(timer);
   }, [registered, countdown, navigate]);
 
-  // =========================
-  // HANDLE INPUT
-  // =========================
-
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    setErrors((prev) => ({
-      ...prev,
-      [name]: "",
-      general: "",
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "", general: "" }));
   };
 
-  // =========================
-  // FRONTEND VALIDATION
-  // =========================
+  const handleRoleSelect = (role) => {
+    setFormData((prev) => ({ ...prev, role, adminKey: "" }));
+    setShowAdminKey(false);
+  };
+
+  const handleAdminToggle = () => {
+    const next = !showAdminKey;
+    setShowAdminKey(next);
+    if (next) {
+      setFormData((prev) => ({ ...prev, role: "admin", adminKey: "" }));
+    } else {
+      setFormData((prev) => ({ ...prev, role: "buyer", adminKey: "" }));
+    }
+  };
 
   const validateForm = () => {
     const newErrors = {};
-
-    // Name
-    if (!formData.name.trim()) {
-      newErrors.name = "Full name is required.";
-    } else if (formData.name.trim().length < 2) {
-      newErrors.name = "Name must be at least 2 characters.";
-    }
-
-    // Email
-    if (!formData.email.trim()) {
-      newErrors.email = "Email address is required.";
-    } else if (
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
-    ) {
-      newErrors.email = "Please enter a valid email address.";
-    }
-
-    // Password
-    if (!formData.password) {
-      newErrors.password = "Password is required.";
-    } else if (!passwordValid) {
-      newErrors.password =
-        "Password does not meet all the requirements.";
-    }
-
+    if (!formData.name.trim()) newErrors.name = "Full name is required.";
+    else if (formData.name.trim().length < 2) newErrors.name = "Name must be at least 2 characters.";
+    if (!formData.email.trim()) newErrors.email = "Email address is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = "Please enter a valid email address.";
+    if (!formData.password) newErrors.password = "Password is required.";
+    else if (!passwordValid) newErrors.password = "Password does not meet all the requirements.";
+    if (showAdminKey && !formData.adminKey.trim()) newErrors.adminKey = "Admin secret key is required.";
     setErrors(newErrors);
-
     return Object.keys(newErrors).length === 0;
   };
 
-  // =========================
-  // REGISTER
-  // =========================
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate before sending request
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     setErrors({});
 
+    const payload = {
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+      ...(showAdminKey
+        ? { adminKey: formData.adminKey }
+        : { role: formData.role })
+    };
+
     try {
-      const response = await fetch(
-        "http://localhost:3000/user/register",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        }
-      );
+      const response = await fetch("http://localhost:3000/user/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
       const data = await response.json();
-
-      // =========================
-      // BACKEND ERROR
-      // =========================
 
       if (!response.ok) {
         if (data.errors) {
           const formattedErrors = {};
-
-          Object.entries(data.errors).forEach(
-            ([field, message]) => {
-              const cleanField = field.replace("body.", "");
-              formattedErrors[cleanField] = message;
-            }
-          );
-
+          Object.entries(data.errors).forEach(([field, message]) => {
+            formattedErrors[field.replace("body.", "")] = message;
+          });
           setErrors(formattedErrors);
         } else {
-          setErrors({
-            general:
-              data.message || "Registration failed.",
-          });
+          setErrors({ general: data.message || "Registration failed." });
         }
-
         return;
       }
-
-      // =========================
-      // REGISTRATION SUCCESS
-      // =========================
 
       setRegistered(true);
       setCountdown(12);
 
     } catch (error) {
       console.error(error);
-
-      setErrors({
-        general:
-          "Unable to connect to the server. Please try again.",
-      });
+      setErrors({ general: "Unable to connect to the server. Please try again." });
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================
-  // SUCCESS SCREEN
-  // =========================
-
+  // ── SUCCESS SCREEN ──────────────────────────────────────────────
   if (registered) {
     return (
       <>
         <style>{styles}</style>
-
         <div className="register-page">
           <div className="success-card">
-
-            <div className="success-icon">
-              ✓
-            </div>
-
-            <p className="success-label">
-              ACCOUNT CREATED
-            </p>
-
-            <h1>
-              Check your email
-            </h1>
-
+            <div className="success-icon">✓</div>
+            <p className="success-label">ACCOUNT CREATED</p>
+            <h1>Check your email</h1>
             <p className="success-text">
               Your account has been created successfully.
-              We have sent a verification link to:
+              We've sent a verification link to:
             </p>
-
-            <div className="email-box">
-              {formData.email}
-            </div>
-
+            <div className="email-box">{formData.email}</div>
             <div className="success-warning">
               <span>✉</span>
               <div>
                 <strong>Verify your email</strong>
-                <p>
-                  Open the email and click the verification
-                  link to activate your account.
-                </p>
+                <p>Click the link in the email to activate your account before logging in.</p>
               </div>
             </div>
-
             <div className="redirect-box">
               <div className="redirect-loader"></div>
-
-              <p>
-                Redirecting to login in{" "}
-                <strong>{countdown}</strong> seconds...
-              </p>
+              <p>Redirecting to login in <strong>{countdown}</strong> seconds...</p>
             </div>
-
-            <button
-              className="login-now-button"
-              onClick={() => navigate("/login")}
-            >
+            <button className="login-now-button" onClick={() => navigate("/login")}>
               Go to Login →
             </button>
-
           </div>
         </div>
       </>
     );
   }
 
-  // =========================
-  // REGISTER PAGE
-  // =========================
-
+  // ── REGISTER FORM ───────────────────────────────────────────────
   return (
     <>
       <style>{styles}</style>
-
       <div className="register-page">
-
         <div className="register-card">
 
-          {/* =========================
-              LEFT SIDE
-          ========================= */}
-
+          {/* ── LEFT BRAND ── */}
           <div className="register-brand">
-
             <div className="brand-logo">
-              <div className="brand-icon">
-                A
-              </div>
-
-              <span>
-                ArtSpace
-              </span>
+              <div className="brand-icon">A</div>
+              <span>ArtSpace</span>
             </div>
-
             <div className="brand-content">
-
-              <div className="brand-badge">
-                ✦ JOIN THE COMMUNITY
-              </div>
-
-              <h1>
-                Your art.
-                <br />
-                <span>Your story.</span>
-              </h1>
-
-              <p>
-                Create your account and become part
-                of a creative community built for
-                artists, collectors and people who
-                love art.
-              </p>
-
+              <div className="brand-badge">✦ JOIN THE COMMUNITY</div>
+              <h1>Your art.<br /><span>Your story.</span></h1>
+              <p>Create your account and become part of a creative community built for artists, collectors and people who love art.</p>
             </div>
-
             <div className="brand-bottom">
-
-              <div className="mini-stat">
-                <strong>01</strong>
-                <span>Create</span>
-              </div>
-
+              <div className="mini-stat"><strong>01</strong><span>Create</span></div>
               <div className="stat-line"></div>
-
-              <div className="mini-stat">
-                <strong>02</strong>
-                <span>Connect</span>
-              </div>
-
+              <div className="mini-stat"><strong>02</strong><span>Connect</span></div>
               <div className="stat-line"></div>
-
-              <div className="mini-stat">
-                <strong>03</strong>
-                <span>Inspire</span>
-              </div>
-
+              <div className="mini-stat"><strong>03</strong><span>Inspire</span></div>
             </div>
-
           </div>
 
-
-          {/* =========================
-              FORM SIDE
-          ========================= */}
-
+          {/* ── FORM SIDE ── */}
           <div className="register-form">
 
             <div className="form-top">
-
-              <span>
-                ALREADY A MEMBER?
-              </span>
-
-              <Link to="/login">
-                Sign in →
-              </Link>
-
+              <span>ALREADY A MEMBER?</span>
+              <Link to="/login">Sign in →</Link>
             </div>
-
 
             <div className="mobile-brand">
-
-              <div className="brand-icon">
-                A
-              </div>
-
+              <div className="brand-icon">A</div>
               ArtSpace
-
             </div>
-
 
             <div className="register-heading">
-
-              <p className="heading-label">
-                CREATE ACCOUNT
-              </p>
-
-              <h2>
-                Start creating.
-              </h2>
-
-              <p>
-                Set up your account in less than a minute.
-              </p>
-
+              <p className="heading-label">CREATE ACCOUNT</p>
+              <h2>Start creating.</h2>
+              <p>Set up your account in less than a minute.</p>
             </div>
-
-
-            {/* GENERAL ERROR */}
 
             {errors.general && (
               <div className="register-error">
@@ -381,29 +211,52 @@ function Register() {
               </div>
             )}
 
-
             <form onSubmit={handleSubmit}>
 
-              {/* =========================
-                  NAME
-              ========================= */}
-
+              {/* ── ROLE SELECTOR ── */}
               <div className="register-input">
+                <label>I AM JOINING AS</label>
 
-                <label htmlFor="name">
-                  FULL NAME
-                </label>
+                {!showAdminKey ? (
+                  /* Normal buyer / seller cards */
+                  <div className="role-selector">
+                    <button
+                      type="button"
+                      className={`role-option ${formData.role === "buyer" ? "role-active" : ""}`}
+                      onClick={() => handleRoleSelect("buyer")}
+                    >
+                      <span className="role-icon">🛍</span>
+                      <strong>Buyer</strong>
+                      <small>Browse and collect art</small>
+                    </button>
+                    <button
+                      type="button"
+                      className={`role-option ${formData.role === "seller" ? "role-active" : ""}`}
+                      onClick={() => handleRoleSelect("seller")}
+                    >
+                      <span className="role-icon">🎨</span>
+                      <strong>Seller</strong>
+                      <small>Showcase and sell art</small>
+                    </button>
+                  </div>
+                ) : (
+                  /* Admin mode — single card shown as selected */
+                  <div className="admin-role-card">
+                    <span className="role-icon">⚡</span>
+                    <div>
+                      <strong>Administrator</strong>
+                      <small>Full platform access</small>
+                    </div>
+                    <span className="admin-badge">ADMIN</span>
+                  </div>
+                )}
+              </div>
 
-                <div
-                  className={`input-wrapper ${
-                    errors.name ? "input-error" : ""
-                  }`}
-                >
-
-                  <span className="input-icon">
-                    ◯
-                  </span>
-
+              {/* ── NAME ── */}
+              <div className="register-input">
+                <label htmlFor="name">FULL NAME</label>
+                <div className={`input-wrapper ${errors.name ? "input-error" : ""}`}>
+                  <span className="input-icon">◯</span>
                   <input
                     id="name"
                     type="text"
@@ -412,38 +265,15 @@ function Register() {
                     value={formData.name}
                     onChange={handleChange}
                   />
-
                 </div>
-
-                {errors.name && (
-                  <small>
-                    {errors.name}
-                  </small>
-                )}
-
+                {errors.name && <small className="field-error">{errors.name}</small>}
               </div>
 
-
-              {/* =========================
-                  EMAIL
-              ========================= */}
-
+              {/* ── EMAIL ── */}
               <div className="register-input">
-
-                <label htmlFor="email">
-                  EMAIL ADDRESS
-                </label>
-
-                <div
-                  className={`input-wrapper ${
-                    errors.email ? "input-error" : ""
-                  }`}
-                >
-
-                  <span className="input-icon">
-                    @
-                  </span>
-
+                <label htmlFor="email">EMAIL ADDRESS</label>
+                <div className={`input-wrapper ${errors.email ? "input-error" : ""}`}>
+                  <span className="input-icon">@</span>
                   <input
                     id="email"
                     type="email"
@@ -452,46 +282,18 @@ function Register() {
                     value={formData.email}
                     onChange={handleChange}
                   />
-
                 </div>
-
-                {errors.email && (
-                  <small>
-                    {errors.email}
-                  </small>
-                )}
-
+                {errors.email && <small className="field-error">{errors.email}</small>}
               </div>
 
-
-              {/* =========================
-                  PASSWORD
-              ========================= */}
-
+              {/* ── PASSWORD ── */}
               <div className="register-input">
-
                 <div className="password-label">
-
-                  <label htmlFor="password">
-                    PASSWORD
-                  </label>
-
-                  <span>
-                    Strong password required
-                  </span>
-
+                  <label htmlFor="password">PASSWORD</label>
+                  <span>Strong password required</span>
                 </div>
-
-                <div
-                  className={`input-wrapper ${
-                    errors.password ? "input-error" : ""
-                  }`}
-                >
-
-                  <span className="input-icon">
-                    ◆
-                  </span>
-
+                <div className={`input-wrapper ${errors.password ? "input-error" : ""}`}>
+                  <span className="input-icon">◆</span>
                   <input
                     id="password"
                     type="password"
@@ -500,1093 +302,379 @@ function Register() {
                     value={formData.password}
                     onChange={handleChange}
                   />
-
                 </div>
-
-
-                {/* PASSWORD REQUIREMENTS */}
-
                 <div className="password-requirements">
-
-                  <PasswordRule
-                    valid={passwordRules.length}
-                    text="At least 8 characters"
-                  />
-
-                  <PasswordRule
-                    valid={passwordRules.uppercase}
-                    text="One uppercase letter"
-                  />
-
-                  <PasswordRule
-                    valid={passwordRules.lowercase}
-                    text="One lowercase letter"
-                  />
-
-                  <PasswordRule
-                    valid={passwordRules.number}
-                    text="One number"
-                  />
-
-                  <PasswordRule
-                    valid={passwordRules.special}
-                    text="One special character"
-                  />
-
+                  <PasswordRule valid={passwordRules.length}    text="At least 8 characters" />
+                  <PasswordRule valid={passwordRules.uppercase} text="One uppercase letter" />
+                  <PasswordRule valid={passwordRules.lowercase} text="One lowercase letter" />
+                  <PasswordRule valid={passwordRules.number}    text="One number" />
+                  <PasswordRule valid={passwordRules.special}   text="One special character" />
                 </div>
-
-                {errors.password && (
-                  <small>
-                    {errors.password}
-                  </small>
-                )}
-
+                {errors.password && <small className="field-error">{errors.password}</small>}
               </div>
 
+              {/* ── ADMIN KEY — only shown when admin mode is active ── */}
+              {showAdminKey && (
+                <div className="register-input">
+                  <label htmlFor="adminKey">ADMIN SECRET KEY</label>
+                  <div className={`input-wrapper ${errors.adminKey ? "input-error" : ""}`}>
+                    <span className="input-icon">🔑</span>
+                    <input
+                      id="adminKey"
+                      type="password"
+                      name="adminKey"
+                      placeholder="Enter the admin secret key"
+                      value={formData.adminKey}
+                      onChange={handleChange}
+                      autoComplete="off"
+                    />
+                  </div>
+                  {errors.adminKey && <small className="field-error">{errors.adminKey}</small>}
+                  <small className="admin-hint">
+                    This key is provided by the platform owner. Contact your administrator if you don't have it.
+                  </small>
+                </div>
+              )}
 
-              {/* =========================
-                  BUTTON
-              ========================= */}
-
+              {/* ── SUBMIT ── */}
               <button
                 type="submit"
                 className="register-button"
                 disabled={loading}
               >
-
                 {loading ? (
-                  <>
-                    <span className="spinner"></span>
-                    Creating account...
-                  </>
+                  <><span className="spinner"></span>Creating account...</>
                 ) : (
-                  <>
-                    Create my account
-                    <span>→</span>
-                  </>
+                  <>Create my account <span>→</span></>
                 )}
-
               </button>
 
             </form>
 
-
+            {/* ── FOOTER ── */}
             <div className="register-footer">
-
-              <span>
-                By creating an account, you agree to our
-                terms and privacy policy.
-              </span>
-
+              <span>By creating an account, you agree to our terms and privacy policy.</span>
+              <button
+                type="button"
+                className={`admin-toggle ${showAdminKey ? "admin-toggle-active" : ""}`}
+                onClick={handleAdminToggle}
+              >
+                {showAdminKey ? "⚡ Cancel admin access" : "Admin access"}
+              </button>
             </div>
 
           </div>
-
         </div>
-
       </div>
     </>
   );
 }
 
-
-// =====================================
-// PASSWORD RULE COMPONENT
-// =====================================
-
 function PasswordRule({ valid, text }) {
   return (
-    <div
-      className={`password-rule ${
-        valid ? "valid" : ""
-      }`}
-    >
-      <span className="rule-icon">
-        {valid ? "✓" : "○"}
-      </span>
-
-      <span>
-        {text}
-      </span>
+    <div className={`password-rule ${valid ? "valid" : ""}`}>
+      <span className="rule-icon">{valid ? "✓" : "○"}</span>
+      <span>{text}</span>
     </div>
   );
 }
 
-
-// =====================================
-// INLINE CSS
-// =====================================
-
 const styles = `
-
-* {
-  box-sizing: border-box;
-}
-
+* { box-sizing: border-box; }
 body {
   margin: 0;
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: #f4f1eb;
   color: #171717;
 }
-
-
-/* =====================================
-   PAGE
-===================================== */
-
 .register-page {
   min-height: 100vh;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   padding: 30px;
-
-  background:
-    radial-gradient(
-      circle at 10% 10%,
-      #ffffff 0,
-      #f4f1eb 40%,
-      #eeeae2 100%
-    );
+  background: radial-gradient(circle at 10% 10%, #ffffff 0, #f4f1eb 40%, #eeeae2 100%);
 }
-
-
-/* =====================================
-   MAIN CARD
-===================================== */
-
 .register-card {
   width: 1100px;
   max-width: 100%;
-
   min-height: 700px;
-
   display: grid;
   grid-template-columns: 45% 55%;
-
   background: white;
-
   border-radius: 28px;
-
   overflow: hidden;
-
-  box-shadow:
-    0 30px 80px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.12);
 }
 
-
-/* =====================================
-   LEFT BRAND
-===================================== */
-
+/* ── BRAND SIDE ── */
 .register-brand {
   position: relative;
-
   padding: 50px;
-
-  background:
-    radial-gradient(
-      circle at 80% 10%,
-      #383838 0,
-      #181818 40%,
-      #090909 100%
-    );
-
+  background: radial-gradient(circle at 80% 10%, #383838 0, #181818 40%, #090909 100%);
   color: white;
-
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-
   overflow: hidden;
 }
-
 .register-brand::before {
   content: "";
-
   position: absolute;
-
-  width: 500px;
-  height: 500px;
-
+  width: 500px; height: 500px;
   border-radius: 50%;
-
   border: 1px solid rgba(255,255,255,0.08);
-
-  right: -250px;
-  top: -180px;
+  right: -250px; top: -180px;
 }
-
 .register-brand::after {
   content: "";
-
   position: absolute;
-
-  width: 350px;
-  height: 350px;
-
+  width: 350px; height: 350px;
   border-radius: 50%;
-
   border: 1px solid rgba(255,255,255,0.06);
-
-  left: -200px;
-  bottom: -170px;
+  left: -200px; bottom: -170px;
 }
-
-
-/* =====================================
-   BRAND LOGO
-===================================== */
-
 .brand-logo {
-  display: flex;
-  align-items: center;
-
-  gap: 12px;
-
-  font-size: 21px;
-  font-weight: 700;
-
-  position: relative;
-  z-index: 2;
+  display: flex; align-items: center; gap: 12px;
+  font-size: 21px; font-weight: 700;
+  position: relative; z-index: 2;
 }
-
 .brand-icon {
-  width: 40px;
-  height: 40px;
-
-  border-radius: 12px;
-
-  background: #d7ff5f;
-
-  color: #171717;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
+  width: 40px; height: 40px; border-radius: 12px;
+  background: #d7ff5f; color: #171717;
+  display: flex; align-items: center; justify-content: center;
   font-weight: 900;
 }
-
-
-/* =====================================
-   BRAND CONTENT
-===================================== */
-
-.brand-content {
-  position: relative;
-  z-index: 2;
-
-  max-width: 420px;
-}
-
+.brand-content { position: relative; z-index: 2; max-width: 420px; }
 .brand-badge {
-  display: inline-block;
-
-  margin-bottom: 25px;
-
-  color: #d7ff5f;
-
-  font-size: 10px;
-
-  font-weight: 800;
-
-  letter-spacing: 2px;
+  display: inline-block; margin-bottom: 25px;
+  color: #d7ff5f; font-size: 10px; font-weight: 800; letter-spacing: 2px;
 }
+.brand-content h1 { margin: 0; font-size: 58px; line-height: 0.98; letter-spacing: -3px; }
+.brand-content h1 span { color: #d7ff5f; }
+.brand-content p { margin-top: 28px; max-width: 380px; color: #a7a7a7; font-size: 15px; line-height: 1.7; }
+.brand-bottom { position: relative; z-index: 2; display: flex; align-items: center; gap: 18px; }
+.mini-stat { display: flex; flex-direction: column; gap: 5px; }
+.mini-stat strong { color: #d7ff5f; font-size: 13px; }
+.mini-stat span { color: #999; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+.stat-line { width: 35px; height: 1px; background: #444; }
 
-.brand-content h1 {
-  margin: 0;
-
-  font-size: 58px;
-
-  line-height: 0.98;
-
-  letter-spacing: -3px;
-}
-
-.brand-content h1 span {
-  color: #d7ff5f;
-}
-
-.brand-content p {
-  margin-top: 28px;
-
-  max-width: 380px;
-
-  color: #a7a7a7;
-
-  font-size: 15px;
-
-  line-height: 1.7;
-}
-
-
-/* =====================================
-   BRAND BOTTOM
-===================================== */
-
-.brand-bottom {
-  position: relative;
-  z-index: 2;
-
-  display: flex;
-  align-items: center;
-
-  gap: 18px;
-}
-
-.mini-stat {
-  display: flex;
-  flex-direction: column;
-
-  gap: 5px;
-}
-
-.mini-stat strong {
-  color: #d7ff5f;
-
-  font-size: 13px;
-}
-
-.mini-stat span {
-  color: #999;
-
-  font-size: 10px;
-
-  text-transform: uppercase;
-
-  letter-spacing: 1px;
-}
-
-.stat-line {
-  width: 35px;
-  height: 1px;
-
-  background: #444;
-}
-
-
-/* =====================================
-   FORM
-===================================== */
-
-.register-form {
-  padding: 45px 65px;
-
-  display: flex;
-  flex-direction: column;
-}
-
-
-/* =====================================
-   TOP LINK
-===================================== */
-
+/* ── FORM SIDE ── */
+.register-form { padding: 45px 65px; display: flex; flex-direction: column; overflow-y: auto; }
 .form-top {
-  display: flex;
-
-  justify-content: flex-end;
-  align-items: center;
-
-  gap: 10px;
-
-  color: #999;
-
-  font-size: 11px;
+  display: flex; justify-content: flex-end; align-items: center;
+  gap: 10px; color: #999; font-size: 11px;
 }
+.form-top a { color: #171717; font-weight: 700; text-decoration: none; transition: 0.2s; }
+.form-top a:hover { opacity: 0.55; }
+.mobile-brand { display: none; align-items: center; gap: 10px; font-weight: 700; }
+.register-heading { margin-top: 30px; margin-bottom: 20px; }
+.heading-label { margin: 0 0 12px; color: #999; font-size: 10px; font-weight: 800; letter-spacing: 2px; }
+.register-heading h2 { margin: 0; font-size: 40px; line-height: 1.1; letter-spacing: -1.8px; }
+.register-heading > p:last-child { margin-top: 10px; color: #888; font-size: 14px; }
 
-.form-top a {
-  color: #171717;
-
-  font-weight: 700;
-
-  text-decoration: none;
-
-  transition: 0.2s;
-}
-
-.form-top a:hover {
-  opacity: 0.55;
-}
-
-
-/* =====================================
-   MOBILE BRAND
-===================================== */
-
-.mobile-brand {
-  display: none;
-
-  align-items: center;
-
-  gap: 10px;
-
-  font-weight: 700;
-}
-
-
-/* =====================================
-   HEADING
-===================================== */
-
-.register-heading {
-  margin-top: 48px;
-
-  margin-bottom: 30px;
-}
-
-.heading-label {
-  margin: 0 0 12px;
-
-  color: #999;
-
-  font-size: 10px;
-
-  font-weight: 800;
-
-  letter-spacing: 2px;
-}
-
-.register-heading h2 {
-  margin: 0;
-
-  font-size: 40px;
-
-  line-height: 1.1;
-
-  letter-spacing: -1.8px;
-}
-
-.register-heading > p:last-child {
-  margin-top: 10px;
-
-  color: #888;
-
-  font-size: 14px;
-}
-
-
-/* =====================================
-   GENERAL ERROR
-===================================== */
-
+/* ── ERRORS ── */
 .register-error {
-  display: flex;
-  align-items: center;
-
-  gap: 9px;
-
-  margin-bottom: 20px;
-
-  padding: 12px 14px;
-
-  border-radius: 10px;
-
-  border: 1px solid #ffd0cc;
-
-  background: #fff2f1;
-
-  color: #c62828;
-
-  font-size: 12px;
+  display: flex; align-items: center; gap: 9px; margin-bottom: 20px;
+  padding: 12px 14px; border-radius: 10px;
+  border: 1px solid #ffd0cc; background: #fff2f1; color: #c62828; font-size: 12px;
 }
-
 .register-error span {
-  width: 19px;
-  height: 19px;
+  width: 19px; height: 19px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #c62828; color: white; font-weight: 800; font-size: 11px;
+  flex-shrink: 0;
+}
+.field-error { display: block; margin-top: 7px; color: #d93025; font-size: 11px; }
 
-  border-radius: 50%;
+/* ── ROLE SELECTOR ── */
+.role-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.role-option {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 14px 10px;
+  border: 2px solid #e5e5e5; border-radius: 12px;
+  background: #fafafa; cursor: pointer;
+  transition: all 0.2s ease; text-align: center;
+  font-family: inherit;
+}
+.role-option:hover { border-color: #171717; background: white; }
+.role-option.role-active { border-color: #171717; background: #171717; color: white; }
+.role-option.role-active small { color: #aaa; }
+.role-icon { font-size: 22px; }
+.role-option strong { font-size: 13px; font-weight: 700; }
+.role-option small { font-size: 10px; color: #999; }
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  background: #c62828;
-
-  color: white;
-
-  font-weight: 800;
-
-  font-size: 11px;
+/* ── ADMIN ROLE CARD ── */
+.admin-role-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  border: 2px solid #171717; border-radius: 12px;
+  background: #171717; color: white;
+}
+.admin-role-card .role-icon { font-size: 22px; flex-shrink: 0; }
+.admin-role-card div { flex: 1; }
+.admin-role-card strong { display: block; font-size: 13px; font-weight: 700; }
+.admin-role-card small { color: #aaa; font-size: 10px; }
+.admin-badge {
+  background: #d7ff5f; color: #171717;
+  font-size: 9px; font-weight: 900;
+  padding: 3px 8px; border-radius: 20px;
+  letter-spacing: 1px; flex-shrink: 0;
 }
 
-
-/* =====================================
-   INPUT
-===================================== */
-
-.register-input {
-  margin-bottom: 20px;
-}
-
+/* ── INPUTS ── */
+.register-input { margin-bottom: 18px; }
 .register-input label {
-  display: block;
-
-  margin-bottom: 8px;
-
-  color: #555;
-
-  font-size: 10px;
-
-  font-weight: 800;
-
-  letter-spacing: 1.4px;
+  display: block; margin-bottom: 8px;
+  color: #555; font-size: 10px; font-weight: 800; letter-spacing: 1.4px;
 }
-
-.password-label {
-  display: flex;
-
-  align-items: center;
-  justify-content: space-between;
-}
-
-.password-label label {
-  margin-bottom: 8px;
-}
-
-.password-label span {
-  color: #aaa;
-
-  font-size: 10px;
-}
-
-
-/* =====================================
-   INPUT WRAPPER
-===================================== */
-
+.password-label { display: flex; align-items: center; justify-content: space-between; }
+.password-label label { margin-bottom: 8px; }
+.password-label span { color: #aaa; font-size: 10px; }
 .input-wrapper {
-  height: 54px;
-
-  display: flex;
-  align-items: center;
-
-  padding: 0 16px;
-
-  border: 1px solid #dedede;
-
-  border-radius: 12px;
-
-  background: #fafafa;
-
-  transition:
-    border 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
+  height: 54px; display: flex; align-items: center; padding: 0 16px;
+  border: 1px solid #dedede; border-radius: 12px; background: #fafafa;
+  transition: border 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
-
 .input-wrapper:focus-within {
-  border-color: #171717;
-
-  background: white;
-
-  box-shadow:
-    0 0 0 4px rgba(23,23,23,0.05);
+  border-color: #171717; background: white;
+  box-shadow: 0 0 0 4px rgba(23,23,23,0.05);
 }
-
-.input-wrapper.input-error {
-  border-color: #e05a52;
-
-  background: #fffafa;
-}
-
-.input-icon {
-  width: 30px;
-
-  color: #999;
-
-  font-size: 14px;
-}
-
+.input-wrapper.input-error { border-color: #e05a52; background: #fffafa; }
+.input-icon { width: 30px; color: #999; font-size: 14px; flex-shrink: 0; }
 .input-wrapper input {
-  flex: 1;
+  flex: 1; width: 100%; border: none; outline: none;
+  background: transparent; color: #171717; font-size: 14px; font-family: inherit;
+}
+.input-wrapper input::placeholder { color: #b5b5b5; }
 
-  width: 100%;
-
-  border: none;
-
-  outline: none;
-
-  background: transparent;
-
-  color: #171717;
-
-  font-size: 14px;
+/* ── ADMIN HINT ── */
+.admin-hint {
+  display: block; margin-top: 7px;
+  color: #999; font-size: 11px; line-height: 1.5;
+  font-style: italic;
 }
 
-.input-wrapper input::placeholder {
-  color: #b5b5b5;
-}
-
-
-/* =====================================
-   FIELD ERROR
-===================================== */
-
-.register-input small {
-  display: block;
-
-  margin-top: 7px;
-
-  color: #d93025;
-
-  font-size: 11px;
-}
-
-
-/* =====================================
-   PASSWORD REQUIREMENTS
-===================================== */
-
+/* ── PASSWORD RULES ── */
 .password-requirements {
-  display: grid;
-
-  grid-template-columns: 1fr 1fr;
-
-  gap: 7px 12px;
-
-  margin-top: 11px;
-
-  padding: 12px;
-
-  border-radius: 10px;
-
-  background: #f7f7f7;
-
-  border: 1px solid #eeeeee;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 7px 12px;
+  margin-top: 11px; padding: 12px; border-radius: 10px;
+  background: #f7f7f7; border: 1px solid #eeeeee;
 }
-
-.password-rule {
-  display: flex;
-
-  align-items: center;
-
-  gap: 7px;
-
-  color: #999;
-
-  font-size: 11px;
-
-  transition: 0.2s;
-}
-
-.password-rule.valid {
-  color: #287a45;
-}
-
+.password-rule { display: flex; align-items: center; gap: 7px; color: #999; font-size: 11px; transition: 0.2s; }
+.password-rule.valid { color: #287a45; }
 .rule-icon {
-  width: 16px;
-  height: 16px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-
-  font-size: 10px;
-
-  font-weight: 800;
+  width: 16px; height: 16px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-size: 10px; font-weight: 800; flex-shrink: 0;
 }
+.password-rule.valid .rule-icon { background: #dff6e7; color: #287a45; }
 
-.password-rule.valid .rule-icon {
-  background: #dff6e7;
-
-  color: #287a45;
-}
-
-
-/* =====================================
-   BUTTON
-===================================== */
-
+/* ── SUBMIT BUTTON ── */
 .register-button {
-  width: 100%;
-
-  height: 56px;
-
-  margin-top: 4px;
-
-  border: none;
-
-  border-radius: 12px;
-
-  background: #171717;
-
-  color: white;
-
-  font-size: 13px;
-
-  font-weight: 700;
-
+  width: 100%; height: 56px; margin-top: 4px;
+  border: none; border-radius: 12px;
+  background: #171717; color: white;
+  font-size: 13px; font-weight: 700; font-family: inherit;
   cursor: pointer;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  gap: 14px;
-
+  display: flex; align-items: center; justify-content: center; gap: 14px;
   transition: 0.2s ease;
 }
-
-.register-button:hover:not(:disabled) {
-  background: #2c2c2c;
-
-  transform: translateY(-1px);
-}
-
-.register-button:disabled {
-  opacity: 0.6;
-
-  cursor: not-allowed;
-}
-
-.register-button span:last-child {
-  font-size: 20px;
-}
-
-
-/* =====================================
-   SPINNER
-===================================== */
-
+.register-button:hover:not(:disabled) { background: #2c2c2c; transform: translateY(-1px); }
+.register-button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.register-button span:last-child { font-size: 20px; }
 .spinner {
-  width: 16px;
-  height: 16px;
-
-  border: 2px solid #777;
-
-  border-top-color: white;
-
-  border-radius: 50%;
-
-  animation: spin 0.7s linear infinite;
+  width: 16px; height: 16px;
+  border: 2px solid #555; border-top-color: white;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-
-/* =====================================
-   FOOTER
-===================================== */
-
+/* ── FOOTER ── */
 .register-footer {
-  margin-top: 18px;
-
-  text-align: center;
+  margin-top: 18px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.register-footer > span { color: #aaa; font-size: 10px; line-height: 1.5; }
+.admin-toggle {
+  background: none; border: 1px solid transparent;
+  color: #ccc; font-size: 10px; font-family: inherit;
+  cursor: pointer; padding: 4px 10px; border-radius: 6px;
+  transition: all 0.2s;
+}
+.admin-toggle:hover { color: #888; border-color: #e5e5e5; }
+.admin-toggle-active {
+  color: #c62828 !important;
+  border-color: #ffd0cc !important;
+  background: #fff2f1 !important;
 }
 
-.register-footer span {
-  color: #aaa;
-
-  font-size: 10px;
-
-  line-height: 1.5;
-}
-
-
-/* =====================================
-   SUCCESS PAGE
-===================================== */
-
+/* ── SUCCESS SCREEN ── */
 .success-card {
-  width: 520px;
-
-  max-width: 100%;
-
-  padding: 55px 50px;
-
-  background: white;
-
-  border-radius: 24px;
-
-  text-align: center;
-
-  box-shadow:
-    0 30px 80px rgba(0,0,0,0.12);
+  width: 520px; max-width: 100%; padding: 55px 50px;
+  background: white; border-radius: 24px; text-align: center;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.12);
 }
-
 .success-icon {
-  width: 70px;
-  height: 70px;
-
-  margin: 0 auto 25px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-
-  background: #e4f8eb;
-
-  color: #287a45;
-
-  font-size: 32px;
-
-  font-weight: 800;
+  width: 70px; height: 70px; margin: 0 auto 25px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: #e4f8eb; color: #287a45;
+  font-size: 32px; font-weight: 800;
 }
-
-.success-label {
-  margin: 0 0 12px;
-
-  color: #287a45;
-
-  font-size: 10px;
-
-  font-weight: 800;
-
-  letter-spacing: 2px;
-}
-
-.success-card h1 {
-  margin: 0;
-
-  font-size: 38px;
-
-  letter-spacing: -1.5px;
-}
-
-.success-text {
-  margin: 15px auto 20px;
-
-  max-width: 390px;
-
-  color: #777;
-
-  font-size: 14px;
-
-  line-height: 1.6;
-}
-
+.success-label { margin: 0 0 12px; color: #287a45; font-size: 10px; font-weight: 800; letter-spacing: 2px; }
+.success-card h1 { margin: 0; font-size: 38px; letter-spacing: -1.5px; }
+.success-text { margin: 15px auto 20px; max-width: 390px; color: #777; font-size: 14px; line-height: 1.6; }
 .email-box {
-  padding: 13px;
-
-  margin-bottom: 20px;
-
-  border-radius: 10px;
-
-  background: #f6f6f6;
-
-  color: #171717;
-
-  font-size: 13px;
-
-  font-weight: 600;
-
-  word-break: break-word;
+  padding: 13px; margin-bottom: 20px;
+  border-radius: 10px; background: #f6f6f6;
+  color: #171717; font-size: 13px; font-weight: 600; word-break: break-word;
 }
-
 .success-warning {
-  display: flex;
-
-  align-items: flex-start;
-
-  gap: 12px;
-
-  text-align: left;
-
-  padding: 15px;
-
-  border-radius: 12px;
-
-  background: #fff9e9;
-
-  border: 1px solid #f5e4b5;
-
-  color: #755d20;
-
-  font-size: 12px;
+  display: flex; align-items: flex-start; gap: 12px; text-align: left;
+  padding: 15px; border-radius: 12px;
+  background: #fff9e9; border: 1px solid #f5e4b5; color: #755d20; font-size: 12px;
 }
-
-.success-warning > span {
-  font-size: 18px;
-}
-
-.success-warning strong {
-  display: block;
-
-  margin-bottom: 4px;
-}
-
-.success-warning p {
-  margin: 0;
-
-  line-height: 1.5;
-}
-
-
-/* =====================================
-   REDIRECT
-===================================== */
-
+.success-warning > span { font-size: 18px; flex-shrink: 0; }
+.success-warning strong { display: block; margin-bottom: 4px; }
+.success-warning p { margin: 0; line-height: 1.5; }
 .redirect-box {
   margin-top: 25px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
-  gap: 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
 }
-
-.redirect-box p {
-  margin: 0;
-
-  color: #888;
-
-  font-size: 12px;
-}
-
-.redirect-box strong {
-  color: #171717;
-}
-
+.redirect-box p { margin: 0; color: #888; font-size: 12px; }
+.redirect-box strong { color: #171717; }
 .redirect-loader {
-  width: 24px;
-  height: 24px;
-
-  border: 3px solid #e5e5e5;
-
-  border-top-color: #171717;
-
-  border-radius: 50%;
-
-  animation: spin 0.8s linear infinite;
+  width: 24px; height: 24px;
+  border: 3px solid #e5e5e5; border-top-color: #171717;
+  border-radius: 50%; animation: spin 0.8s linear infinite;
 }
-
-
-/* =====================================
-   LOGIN BUTTON
-===================================== */
-
 .login-now-button {
-  width: 100%;
-
-  height: 50px;
-
-  margin-top: 20px;
-
-  border: none;
-
-  border-radius: 10px;
-
-  background: #171717;
-
-  color: white;
-
-  font-size: 13px;
-
-  font-weight: 700;
-
-  cursor: pointer;
-
-  transition: 0.2s;
+  width: 100%; height: 50px; margin-top: 20px;
+  border: none; border-radius: 10px;
+  background: #171717; color: white;
+  font-size: 13px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: 0.2s;
 }
+.login-now-button:hover { background: #333; transform: translateY(-1px); }
 
-.login-now-button:hover {
-  background: #333;
-
-  transform: translateY(-1px);
-}
-
-
-/* =====================================
-   RESPONSIVE
-===================================== */
-
+/* ── RESPONSIVE ── */
 @media (max-width: 850px) {
-
-  .register-page {
-    padding: 15px;
-  }
-
-  .register-card {
-    grid-template-columns: 1fr;
-
-    max-width: 550px;
-
-    min-height: auto;
-  }
-
-  .register-brand {
-    display: none;
-  }
-
-  .register-form {
-    padding: 35px 30px;
-  }
-
-  .mobile-brand {
-    display: flex;
-
-    margin-bottom: 35px;
-  }
-
-  .register-heading {
-    margin-top: 0;
-  }
-
+  .register-page { padding: 15px; }
+  .register-card { grid-template-columns: 1fr; max-width: 550px; min-height: auto; }
+  .register-brand { display: none; }
+  .register-form { padding: 35px 30px; }
+  .mobile-brand { display: flex; margin-bottom: 35px; }
+  .register-heading { margin-top: 0; }
 }
-
-
 @media (max-width: 500px) {
-
-  .register-page {
-    padding: 0;
-
-    background: white;
-  }
-
-  .register-card {
-    min-height: 100vh;
-
-    border-radius: 0;
-
-    box-shadow: none;
-  }
-
-  .register-form {
-    padding: 25px 20px;
-  }
-
-  .register-heading h2 {
-    font-size: 32px;
-  }
-
-  .password-requirements {
-    grid-template-columns: 1fr;
-  }
-
-  .success-card {
-    min-height: 100vh;
-
-    border-radius: 0;
-
-    box-shadow: none;
-
-    padding: 45px 25px;
-  }
-
-  .success-card h1 {
-    font-size: 32px;
-  }
-
+  .register-page { padding: 0; background: white; }
+  .register-card { min-height: 100vh; border-radius: 0; box-shadow: none; }
+  .register-form { padding: 25px 20px; }
+  .register-heading h2 { font-size: 32px; }
+  .password-requirements { grid-template-columns: 1fr; }
+  .success-card { min-height: 100vh; border-radius: 0; box-shadow: none; padding: 45px 25px; }
+  .success-card h1 { font-size: 32px; }
 }
 `;
 

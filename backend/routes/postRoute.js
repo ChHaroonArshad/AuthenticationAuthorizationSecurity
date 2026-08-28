@@ -1,5 +1,9 @@
 const express = require("express");
 const ZodMiddleware = require("../middleware/ZodMiddleware");
+const AuthMiddleware = require("../middleware/AuthMiddleware");
+const RoleMiddleware = require("../middleware/RoleMiddleware");
+const OwnershipMiddleware = require("../middleware/OwnershipMiddleware");
+const Post = require("../models/post");
 
 const {
     createPostSchema,
@@ -11,35 +15,56 @@ const postController = require("../controllers/postController");
 
 const router = express.Router();
 
-// Get all users
-router.get("/", postController.getAllPosts);
-
-// Get one user
+// ======================================================
+// GET ALL POSTS — public
+// ======================================================
 router.get(
-  "/:id",
-  ZodMiddleware(getPostSchema),
-  postController.getPostById
+    "/",
+    postController.getAllPosts
 );
 
-// Create user
+// ======================================================
+// GET ONE POST — public
+// ======================================================
+router.get(
+    "/:id",
+    ZodMiddleware(getPostSchema),
+    postController.getPostById
+);
+
+// ======================================================
+// CREATE POST — seller or admin only
+// ======================================================
 router.post(
-  "/",
-  ZodMiddleware(createPostSchema),
-  postController.createPost
+    "/",
+    AuthMiddleware,
+    RoleMiddleware("seller", "admin"),
+    ZodMiddleware(createPostSchema),
+    postController.createPost
 );
 
-// Update user
+// ======================================================
+// UPDATE POST — seller or admin + must own the post
+// ======================================================
 router.put(
-  "/:id",
-  ZodMiddleware(updatePostSchema),
-  postController.updatePost
+    "/:id",
+    AuthMiddleware,
+    RoleMiddleware("seller", "admin"),
+    OwnershipMiddleware(Post),
+    ZodMiddleware(updatePostSchema),
+    postController.updatePost
 );
 
-// Delete user
+// ======================================================
+// DELETE POST — seller or admin + must own the post
+// ======================================================
 router.delete(
-  "/:id",
-  ZodMiddleware(getPostSchema),
-  postController.deletePost
+    "/:id",
+    AuthMiddleware,
+    RoleMiddleware("seller", "admin"),
+    OwnershipMiddleware(Post),
+    ZodMiddleware(getPostSchema),
+    postController.deletePost
 );
 
 module.exports = router;
