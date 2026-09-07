@@ -14,23 +14,15 @@ const {
 const postController = require("../controllers/postController");
 
 const router = express.Router();
+const cache = require("../middleware/cacheMiddleware");
 
-// ======================================================
-// GET ALL POSTS — public
-// ======================================================
-router.get(
-    "/",
-    postController.getAllPosts
-);
+// GET all posts — cache 60 seconds
+router.get("/", cache(60), postController.getAllPosts);
 
+// GET one post — cache 120 seconds
+router.get("/:id", ZodMiddleware(getPostSchema), cache(120), postController.getPostById);
 // ======================================================
-// GET ONE POST — public
-// ======================================================
-router.get(
-    "/:id",
-    ZodMiddleware(getPostSchema),
-    postController.getPostById
-);
+
 
 // ======================================================
 // CREATE POST — seller or admin only

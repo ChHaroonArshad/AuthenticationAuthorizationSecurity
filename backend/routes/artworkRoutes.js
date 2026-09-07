@@ -7,6 +7,8 @@ const OwnershipMiddleware = require("../middleware/OwnershipMiddleware");
 const { upload }          = require("../middleware/Uploadmiddleware");
 const Artwork             = require("../models/Artwork");
 const artworkController   = require("../controllers/Artworkcontroller");
+const cache      = require("../middleware/cacheMiddleware");
+const clearCache = require("../utils/clearCache");
 
 // ======================================================
 // OPTIONAL AUTH MIDDLEWARE
@@ -38,25 +40,49 @@ const optionalAuth = async (req, res, next) => {
 // ======================================================
 // GET ALL ARTWORKS — public with optional auth
 // ======================================================
-router.get("/", optionalAuth, artworkController.getArtworks);
+// router.get("/", optionalAuth, artworkController.getArtworks);
 
 // ======================================================
 // GET SINGLE ARTWORK — public with optional auth
 // ======================================================
-router.get("/:id", optionalAuth, artworkController.getArtworkById);
+// router.get("/:id", optionalAuth, artworkController.getArtworkById);
 
+
+
+
+
+
+
+
+
+// GET ALL — cache for 60 seconds
+router.get(
+    "/",
+    optionalAuth,
+    cache(60),                    // ← add this
+    artworkController.getArtworks
+);
+
+// GET ONE — cache for 120 seconds
+router.get(
+    "/:id",
+    optionalAuth,
+    cache(120),                   // ← add this
+    artworkController.getArtworkById
+);
 // ======================================================
 // CREATE ARTWORK — seller or admin only
 // upload.single("image") sends file straight to Cloudinary
 // ======================================================
+// CREATE
 router.post(
     "/",
     AuthMiddleware,
     RoleMiddleware("seller", "admin"),
     upload.single("image"),
-    artworkController.createArtwork
+    artworkController.createArtwork,
+    async (req, res, next) => { await clearCache("/artwork"); } // ← won't work like this
 );
-
 // ======================================================
 // UPDATE ARTWORK — seller or admin + must own it
 // Image upload is optional on update

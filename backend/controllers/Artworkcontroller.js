@@ -1,6 +1,6 @@
-const artworkService = require("../services/artworkService");
+const artworkService = require("../services/Artworkservice");
 const { cloudinary }  = require("../middleware/Uploadmiddleware");
-
+const clearCache = require("../utils/clearCache");
 // ======================================================
 // GET ALL ARTWORKS
 // ======================================================
@@ -50,9 +50,7 @@ const getArtworkById = async (req, res, next) => {
 };
 
 
-// ======================================================
 // CREATE ARTWORK
-// ======================================================
 const createArtwork = async (req, res, next) => {
     try {
         if (!req.file) {
@@ -60,97 +58,81 @@ const createArtwork = async (req, res, next) => {
         }
 
         const { title, description, price, category, status } = req.body;
+        const imageUrl = `/uploads/artworks/${req.file.filename}`;
 
-        // Cloudinary gives us the URL and public_id directly on req.file
-        // req.file.path      = the full cloudinary URL
-        // req.file.filename  = the public_id (used later for deletion)
         const artwork = await artworkService.createArtwork({
             title,
             description,
-            price:     Number(price),
+            price: Number(price),
             category,
-            status:    status || "draft",
-            imageUrl:  req.file.path,          // full cloudinary URL
+            status: status || "draft",
+            imageUrl,
             imageName: req.file.originalname,
-            publicId:  req.file.filename,      // cloudinary public_id for deletion
-            owner:     req.user._id
+            owner: req.user._id
         });
+
+        await clearCache("/artwork");   // ← invalidate artwork list cache
 
         res.status(201).json({
             message: "Artwork created successfully",
             data: artwork
         });
     } catch (error) {
-        // If DB save fails, delete the already-uploaded cloudinary file
-        if (req.file && req.file.filename) {
-            await cloudinary.uploader.destroy(req.file.filename).catch(() => {});
+        if (req.file) {
+            const filePath = path.join(__dirname, "../uploads/artworks", req.file.filename);
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         }
         next(error);
     }
 };
 
 
-// ======================================================
 // UPDATE ARTWORK
-// ======================================================
 const updateArtwork = async (req, res, next) => {
     try {
         const { title, description, price, category, status } = req.body;
-
         const updateData = {};
+
         if (title)       updateData.title       = title;
         if (description) updateData.description = description;
         if (price)       updateData.price       = Number(price);
         if (category)    updateData.category    = category;
         if (status)      updateData.status      = status;
 
-        // If a new image was uploaded
         if (req.file) {
-            // Delete the OLD image from cloudinary
-            const oldArtwork = req.resource;  // attached by OwnershipMiddleware
-            if (oldArtwork && oldArtwork.publicId) {
-                await cloudinary.uploader.destroy(oldArtwork.publicId).catch(() => {});
+            const oldArtwork = req.resource;
+            if (oldArtwork?.imageUrl) {
+                const oldPath = path.join(__dirname, "../", oldArtwork.imageUrl.replace(/^\//, ""));
+                if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
             }
-
-            // Store new cloudinary URL and public_id
-            updateData.imageUrl  = req.file.path;
+            updateData.imageUrl  = `/uploads/artworks/${req.file.filename}`;
             updateData.imageName = req.file.originalname;
-            updateData.publicId  = req.file.filename;
         }
 
-        const artwork = await artworkService.updateArtwork(
-            req.resource._id,
-            updateData
-        );
+        const artwork = await artworkService.updateArtwork(req.resource._id, updateData);
+
+        await clearCache("/artwork");   // ← invalidate artwork list cache
 
         res.status(200).json({
             message: "Artwork updated successfully",
             data: artwork
         });
     } catch (error) {
-        // If DB update fails and we uploaded a new image, clean it up
-        if (req.file && req.file.filename) {
-            await cloudinary.uploader.destroy(req.file.filename).catch(() => {});
+        if (req.file) {
+            const filePath = path.join(__dirname, "../uploads/artworks", req.file.filename);
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         }
         next(error);
     }
 };
 
 
-// ======================================================
 // DELETE ARTWORK
-// ======================================================
 const deleteArtwork = async (req, res, next) => {
     try {
-        // Get publicId before deletion so we can remove from cloudinary
-        const publicId = req.resource.publicId;
-
         await artworkService.deleteArtwork(req.resource._id);
 
-        // Delete from cloudinary after DB deletion succeeds
-        if (publicId) {
-            await cloudinary.uploader.destroy(publicId).catch(() => {});
-        }
+        await clearCache("/artwork");   // ← invalidate artwork list cache
 
         res.status(200).json({
             message: "Artwork deleted successfully"
@@ -159,7 +141,6 @@ const deleteArtwork = async (req, res, next) => {
         next(error);
     }
 };
-
 
 module.exports = {
     getArtworks,

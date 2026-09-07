@@ -9,9 +9,9 @@ const Artwork = require("../models/Artwork");
 //   buyer (early)  → sees published + early_access
 // ======================================================
 const getArtworks = async (query, requestingUser) => {
-    const page  = Number(query.page)  || 1;
+    const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 12;
-    const skip  = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
     let filter = {};
 
@@ -82,9 +82,12 @@ const getArtworks = async (query, requestingUser) => {
 // GET SINGLE ARTWORK
 // ======================================================
 const getArtworkById = async (id, requestingUser) => {
-    const artwork = await Artwork.findById(id)
-        .populate("owner", "name email");
-
+    // ONE query — find, populate, and increment views in a single round trip
+    const artwork = await Artwork.findByIdAndUpdate(
+        id,
+        { $inc: { views: 1 } },
+        { new: true }              // return the updated document
+    ).populate("owner", "name email");
     if (!artwork) throw new Error("Artwork not found");
 
     // Visibility check
@@ -106,7 +109,7 @@ const getArtworkById = async (id, requestingUser) => {
     }
 
     // Increment view count
-    await Artwork.findByIdAndUpdate(id, { $inc: { views: 1 } });
+    // await Artwork.findByIdAndUpdate(id, { $inc: { views: 1 } });
 
     return artwork;
 };

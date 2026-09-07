@@ -1,5 +1,7 @@
 const postService = require("../services/postService");
+const clearCache = require("../utils/clearCache");
 
+// In createPost:
 // Get all posts
 const getAllPosts = async (req, res, next) => {
     try {
@@ -35,6 +37,7 @@ const createPost = async (req, res, next) => {
             ...req.body,
             owner: req.user._id     // ← attached from AuthMiddleware
         });
+await clearCache("/post");
 
         res.status(201).json({
             message: "Post created successfully",
@@ -54,6 +57,7 @@ const updatePost = async (req, res, next) => {
             req.resource._id,
             req.body
         );
+        await clearCache("/post");
 
         res.status(200).json({
             message: "Post updated successfully",
@@ -69,6 +73,7 @@ const deletePost = async (req, res, next) => {
     try {
         // req.resource already fetched by OwnershipMiddleware
         await postService.deletePost(req.resource._id);
+await clearCache("/post");
 
         res.status(200).json({
             message: "Post deleted successfully"
@@ -90,6 +95,8 @@ const getPostsPerUser = async (req, res, next) => {
         next(error);
     }
 };
+
+
 
 module.exports = {
     getAllPosts,
