@@ -21,40 +21,44 @@ const artworkSchema = new mongoose.Schema(
 
         category: {
             type: String,
-            enum: ["painting", "photography", "digital", "sculpture", "illustration", "premium", "other"],
+            enum: ["painting", "photography", "digital", "sculpture", "illustration", "other"],
             default: "other"
         },
 
-        // Local file path — stored as /uploads/artworks/filename.jpg
-        // Served statically from Express
+        // Full Cloudinary URL — used directly in <img src>
         imageUrl: {
             type: String,
             required: true
         },
 
-        // Original filename for display/download
+        // Original filename for display
         imageName: {
             type: String,
             default: ""
         },
 
-        // draft = only seller + admin can see
-        // published = everyone can see
-        // early_access = only buyers with feature:early_access + seller + admin
+        // Cloudinary public_id — needed to delete the image later
+        // e.g. "artspace/artworks/artwork-userId-timestamp"
+        publicId: {
+            type: String,
+            default: ""
+        },
+
+        // draft        = only seller + admin can see
+        // published    = everyone can see
+        // early_access = buyers with feature:early_access + seller + admin
         status: {
             type: String,
             enum: ["draft", "published", "early_access"],
             default: "draft"
         },
 
-        // The seller who uploaded this artwork
         owner: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true
         },
 
-        // How many times this artwork has been viewed
         views: {
             type: Number,
             default: 0

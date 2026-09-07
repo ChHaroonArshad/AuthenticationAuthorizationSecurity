@@ -1,6 +1,4 @@
 const Artwork = require("../models/Artwork");
-const fs = require("fs");
-const path = require("path");
 
 // ======================================================
 // GET ARTWORKS
@@ -11,19 +9,19 @@ const path = require("path");
 //   buyer (early)  → sees published + early_access
 // ======================================================
 const getArtworks = async (query, requestingUser) => {
-    const page = Number(query.page) || 1;
+    const page  = Number(query.page)  || 1;
     const limit = Number(query.limit) || 12;
-    const skip = (page - 1) * limit;
+    const skip  = (page - 1) * limit;
 
     let filter = {};
 
     // Build visibility filter based on role + permissions
     if (!requestingUser) {
-        // Unauthenticated — only published
+        // Unauthenticated — published only
         filter.status = "published";
 
     } else if (requestingUser.role === "admin") {
-        // Admin sees everything — no status filter
+        // Admin sees everything — no filter
 
     } else if (requestingUser.role === "seller") {
         // Seller sees published + early_access + their own drafts
@@ -34,19 +32,12 @@ const getArtworks = async (query, requestingUser) => {
 
     } else {
         // Buyer
-        const hasEarlyAccess = (requestingUser.permissions || []).includes("feature:early_access");
-        const hasPremium = (requestingUser.permissions || []).includes("feature:premium_art");
+        const hasEarlyAccess = (requestingUser.permissions || [])
+            .includes("feature:early_access");
 
-        const allowedStatuses = ["published"];
-        if (hasEarlyAccess) allowedStatuses.push("early_access");
-
-        // Base filter — allowed statuses
-        filter.status = { $in: allowedStatuses };
-
-        // If no premium permission, exclude premium category
-        if (!hasPremium) {
-            filter.category = { $ne: "premium" };
-        }
+        filter.status = hasEarlyAccess
+            ? { $in: ["published", "early_access"] }
+            : "published";
     }
 
     // Category filter
@@ -66,10 +57,9 @@ const getArtworks = async (query, requestingUser) => {
         filter.title = { $regex: query.search, $options: "i" };
     }
 
-    // Owner filter — seller viewing only their artworks
+    // Mine filter — seller viewing only their artworks
     if (query.mine === "true" && requestingUser) {
         filter.owner = requestingUser._id;
-        // When viewing own artworks, show all statuses
         delete filter.status;
         delete filter.$or;
     }
@@ -95,9 +85,7 @@ const getArtworkById = async (id, requestingUser) => {
     const artwork = await Artwork.findById(id)
         .populate("owner", "name email");
 
-    if (!artwork) {
-        throw new Error("Artwork not found");
-    }
+    if (!artwork) throw new Error("Artwork not found");
 
     // Visibility check
     if (artwork.status === "draft") {
@@ -143,36 +131,18 @@ const updateArtwork = async (id, updateData) => {
         { new: true, runValidators: true }
     );
 
-    if (!artwork) {
-        throw new Error("Artwork not found");
-    }
-
+    if (!artwork) throw new Error("Artwork not found");
     return artwork;
 };
 
 
 // ======================================================
-// DELETE ARTWORK — also deletes the image file
+// DELETE ARTWORK
+// No file deletion here — controller handles cloudinary
 // ======================================================
 const deleteArtwork = async (id) => {
     const artwork = await Artwork.findByIdAndDelete(id);
-
-    if (!artwork) {
-        throw new Error("Artwork not found");
-    }
-
-    // Delete the actual file from disk
-    if (artwork.imageUrl) {
-        const filePath = path.join(
-            __dirname,
-            "../",
-            artwork.imageUrl.replace(/^\//, "")
-        );
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-        }
-    }
-
+    if (!artwork) throw new Error("Artwork not found");
     return artwork;
 };
 

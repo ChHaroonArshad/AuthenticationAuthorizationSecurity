@@ -26,7 +26,9 @@ app.use(express.json());
 
 // ── STATIC FILES — serve uploaded images ────────────────
 // No helmet — it blocks cross-origin images in development
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+
+// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ── DATABASE ─────────────────────────────────────────────
 connectDB();

@@ -55,7 +55,7 @@ const UploadArtwork = () => {
                     category:    a.category,
                     status:      a.status
                 });
-                setExistingImg(`${API}${a.imageUrl}`);
+             setExistingImg(a.imageUrl);
             } catch {
                 navigate(`/${role}/artworks`);
             } finally {

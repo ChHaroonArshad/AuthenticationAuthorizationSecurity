@@ -1,58 +1,53 @@
 const express = require("express");
 const router  = express.Router();
-const jwt     = require("jsonwebtoken");
-const User    = require("../models/User");
 
 const AuthMiddleware      = require("../middleware/AuthMiddleware");
 const RoleMiddleware      = require("../middleware/RoleMiddleware");
 const OwnershipMiddleware = require("../middleware/OwnershipMiddleware");
-const upload              = require("../middleware/uploadMiddleware");
+const { upload }          = require("../middleware/Uploadmiddleware");
 const Artwork             = require("../models/Artwork");
-const artworkController   = require("../controllers/artworkController");
+const artworkController   = require("../controllers/Artworkcontroller");
 
 // ======================================================
-// OPTIONAL AUTH — attaches req.user if token exists
-// but does NOT block the request if there is no token.
-// Used on public browse routes so buyers with
-// feature:early_access permission see more artworks.
+// OPTIONAL AUTH MIDDLEWARE
+// Tries to attach req.user if a token is present.
+// Does NOT block the request if there is no token.
+// Used on GET routes so unauthenticated users can still
+// browse published artworks, but authenticated users
+// get the correct visibility (early_access, drafts etc.)
 // ======================================================
 const optionalAuth = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) return next();
 
-    const token = authHeader.split(" ")[1];
-    if (!token) return next();
+    const parts = authHeader.split(" ");
+    if (parts.length !== 2 || parts[0] !== "Bearer") return next();
 
-    try {
-        const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const token = parts[1];
+    const jwt  = require("jsonwebtoken");
+    const User = require("../models/User");
+
+    jwt.verify(token, process.env.JWT_SECRET, async (err, payload) => {
+        if (err) return next();
         const user = await User.findById(payload.userID);
         if (user) req.user = user;
-    } catch {
-        // Invalid token — just continue as unauthenticated
-    }
-    next();
+        next();
+    });
 };
 
 // ======================================================
-// GET ALL ARTWORKS — public, optional auth
+// GET ALL ARTWORKS — public with optional auth
 // ======================================================
-router.get(
-    "/",
-    optionalAuth,
-    artworkController.getArtworks
-);
+router.get("/", optionalAuth, artworkController.getArtworks);
 
 // ======================================================
-// GET SINGLE ARTWORK — public, optional auth
+// GET SINGLE ARTWORK — public with optional auth
 // ======================================================
-router.get(
-    "/:id",
-    optionalAuth,
-    artworkController.getArtworkById
-);
+router.get("/:id", optionalAuth, artworkController.getArtworkById);
 
 // ======================================================
 // CREATE ARTWORK — seller or admin only
+// upload.single("image") sends file straight to Cloudinary
 // ======================================================
 router.post(
     "/",
@@ -64,6 +59,7 @@ router.post(
 
 // ======================================================
 // UPDATE ARTWORK — seller or admin + must own it
+// Image upload is optional on update
 // ======================================================
 router.put(
     "/:id",

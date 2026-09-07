@@ -241,7 +241,7 @@ const Artworks = () => {
                                     {/* Image */}
                                     <div style={imageWrap}>
                                         <img
-                                            src={`${API}${artwork.imageUrl}`}
+                                           src={artwork.imageUrl}
                                             alt={artwork.title}
                                             style={image}
                                             onError={e => {
