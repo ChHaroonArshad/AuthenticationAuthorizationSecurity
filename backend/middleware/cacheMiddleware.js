@@ -17,8 +17,8 @@ const cache = (ttl = DEFAULT_TTL) => {
 
         const key = `cache:${req.originalUrl}`;
 
-        console.log("Key:", key)
-        console.log("Res", res)
+        // console.log("Key:", key)
+        // console.log("Res", res)
 
         try {
             const cached = await redisClient.get(key);

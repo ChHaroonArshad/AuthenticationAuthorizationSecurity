@@ -179,7 +179,7 @@ const AdminArtworks = () => {
                                                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                                     <div style={thumbWrap}>
                                                         <img
-                                                            src={`${API}${a.imageUrl}`}
+                                                            src={a.imageUrl}
                                                             alt={a.title}
                                                             style={thumb}
                                                             onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
